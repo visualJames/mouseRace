@@ -173,18 +173,6 @@ def running_loop(screen, mPL):
         if keys[pygame.K_DOWN]:
             print("Down")
             coordinateY[Team.red]+=movement
-        if keys[pygame.K_LEFT]:
-            print("Left")
-            coordinateX[Team.red] -= movement
-        if keys[pygame.K_RIGHT]:
-            print("Right")
-            coordinateX[Team.red] += movement
-        if keys[pygame.K_UP]:
-            print("Up")
-            coordinateY[Team.red] -= movement
-        if keys[pygame.K_DOWN]:
-            print("Down")
-            coordinateY[Team.red] += movement
         if keys[pygame.K_a]:
             print("a")
             coordinateX[Team.blue] -= movement
