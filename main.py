@@ -24,6 +24,7 @@ class Player:
     leben=3
     endurance= 10
     whichImage=0
+    whichImageExactly=0
     def __init__(self, name, posX, posY, images, leben, endurance):
         self.name = name
         self.posX = posX
@@ -75,10 +76,11 @@ class Player:
         self.posX = self.posX+coordinateX
         self.posY = self.posY+coordinateY
         self.change_image(coordinateX,coordinateY)
-        if(self.whichImage>=len(self.images)):
-            self.whichImage = 0
+        self.whichImageExactly +=1
+        if(self.whichImageExactly>=len(self.images[self.whichImage.value])):
+            self.whichImageExactly = 0
     def draw(self, screen):
-        screen.blit(self.images[self.whichImage], (self.posX, self.posY))
+        screen.blit(self.images[self.whichImage.value][self.whichImageExactly], (self.posX, self.posY))
 
 def quit_sequence(quit):
     quit = True
@@ -123,14 +125,35 @@ def running_loop(screen, mPL):
             print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
         pygame.display.update()
 
+def load_images():
+    up1 = pygame.image.load("mouseplayer/mouseplayer_Up.png")
+    up2 = pygame.image.load("mouseplayer/mouseplayer2_Up.png")
+    down1 = pygame.image.load("mouseplayer/mouseplayer_Down.png")
+    down2 = pygame.image.load("mouseplayer/mouseplayer2_Down.png")
+    left1 = pygame.image.load("mouseplayer/mouseplayer_Left.png")
+    left2 = pygame.image.load("mouseplayer/mouseplayer2_Left.png")
+    right1 = pygame.image.load("mouseplayer/mouseplayer_Right.png")
+    right2 = pygame.image.load("mouseplayer/mouseplayer2_Right.png")
+    up_left1 = pygame.image.load("mouseplayer/mouseplayer_Up_Left.png")
+    up_left2 = pygame.image.load("mouseplayer/mouseplayer2_Up_Left.png")
+    up_right1 = pygame.image.load("mouseplayer/mouseplayer_Up_Right.png")
+    up_right2 = pygame.image.load("mouseplayer/mouseplayer2_Up_Right.png")
+    down_right1 = pygame.image.load("mouseplayer/mouseplayer_Down_Right.png")
+    down_right2 = pygame.image.load("mouseplayer/mouseplayer2_Down_Right.png")
+    down_left1 = pygame.image.load("mouseplayer/mouseplayer_Down_Left.png")
+    down_left2 = pygame.image.load("mouseplayer/mouseplayer2_Down_Left.png")
+    death = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")
+    return [[right1], [death], [up_right1, up_right2], [up1, up2],
+            [down1, down2], [left1, left2], [right1, right2],
+            [up_left1, up_left2], [up_right1, up_right2],
+            [down_left1, down_left2], [down_right1, down_right2]]
 pygame.init()
 screen = pygame.display.set_mode((1800,1000))
 pygame.display.set_caption("Mouse Race")
 mouseheadImage = pygame.image.load('mousehead/mousehead.png')
 pygame.display.set_icon(mouseheadImage)
-mouseplayerImage = pygame.image.load("mouseplayer/mouseplayer.png")
-mouseplayerImage2 = pygame.image.load("mouseplayer/mouseplayer2.png")
-mousePlayerList = [Player("Maus1", 420, 480, [mouseplayerImage, mouseplayerImage2], 3, 5)]
+
+mousePlayerList = [Player("Maus1", 420, 480, load_images(), 3, 5)]
 running_loop(screen, mousePlayerList)
 
 
