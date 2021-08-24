@@ -2,18 +2,16 @@ import pygame
 from enum import Enum
 
 class Direction(Enum):
-    No_direction = 0
-    Death = 1
-    Jump = 2
-    Up = 3
-    Down = 4
-    Left = 5
-    Right = 6
-    Up_Left = 7
-    Up_Right = 8
-    Down_Left = 9
-    Down_Right = 10
-
+    Up = 0
+    Down = 180
+    Left = 270
+    Right = 90
+    Up_Left = 315
+    Up_Right = 45
+    Down_Left = 225
+    Down_Right = 135
+    def get_diff(self, direction):
+        return direction.value-self.value
 
 
 class Player:
@@ -23,7 +21,7 @@ class Player:
     images=None
     leben=3
     endurance= 10
-    whichImage=0
+    whichImageDirection=Direction
     whichImageExactly=0
     def __init__(self, name, posX, posY, images, leben, endurance):
         self.name = name
@@ -32,10 +30,18 @@ class Player:
         self.images = images
         self.leben = leben
         self.endurance = endurance
+        self.whichImageDirection=Direction.Right
+
+    def set_direction(self, direction):
+        angle = self.whichImageDirection.get_diff(direction)
+        self.whichImageDirection = direction
+        for i in range(0,len(self.images)):
+            self.images[i] = pygame.transform.rotate(self.images[i], angle)
     def loseLive(self):
         self.leben=self.leben-1
         if(self.leben<=0):
-            self.whichImage=Direction.Death
+            #death
+            print("death")
     def loseendurance(self):
         if self.endurance>0:
             self.endurance = self.endurance - 1
@@ -49,38 +55,40 @@ class Player:
     def change_image(self, coordinateX, coordinateY):
         if (coordinateX >= 0):
             if (coordinateY >= 0):
-                self.whichImage = Direction.Down_Right
+                self.set_direction(Direction.Down_Right)
             else:
                 if (coordinateY <= 0):
-                    self.whichImage = Direction.Up_Right
+                    self.set_direction(Direction.Up_Right)
                 else:
-                    self.whichImage = Direction.Right
+                    self.set_direction(Direction.Right)
         else:
             if (coordinateX <= 0):
                 if (coordinateY >= 0):
-                    self.whichImage = Direction.Down_Left
+                    self.set_direction(Direction.Down_Left)
                 else:
                     if (coordinateY <= 0):
-                        self.whichImage = Direction.Up_Left
+                        self.set_direction(Direction.Up_Left)
                     else:
-                        self.whichImage = Direction.Left
+                        self.set_direction(Direction.Left)
             else:
                 if (coordinateY > 0):
-                    self.whichImage = Direction.Up
+                    self.set_direction(Direction.Up)
                 else:
                     if(coordinateY < 0):
-                        self.whichImage = Direction.Down
+                        self.set_direction(Direction.Down)
                     else:
-                        self.whichImage = Direction.No_direction
+                        self.set_direction(Direction.Right)
+        print(self.whichImageDirection)
     def goTo(self, coordinateX, coordinateY):
         self.posX = self.posX+coordinateX
         self.posY = self.posY+coordinateY
         self.change_image(coordinateX,coordinateY)
         self.whichImageExactly +=1
-        if(self.whichImageExactly>=len(self.images[self.whichImage.value])):
+        if(self.whichImageExactly>=len(self.images)):
             self.whichImageExactly = 0
     def draw(self, screen):
-        screen.blit(self.images[self.whichImage.value][self.whichImageExactly], (self.posX, self.posY))
+        screen.blit(self.images[self.whichImageExactly], (self.posX, self.posY))
+    #try it with this logic and it will work better and rotate automatically
 
 def quit_sequence(quit):
     quit = True
@@ -128,25 +136,8 @@ def running_loop(screen, mPL):
 def load_images():
     up1 = pygame.image.load("mouseplayer/mouseplayer_Up.png")
     up2 = pygame.image.load("mouseplayer/mouseplayer2_Up.png")
-    down1 = pygame.image.load("mouseplayer/mouseplayer_Down.png")
-    down2 = pygame.image.load("mouseplayer/mouseplayer2_Down.png")
-    left1 = pygame.image.load("mouseplayer/mouseplayer_Left.png")
-    left2 = pygame.image.load("mouseplayer/mouseplayer2_Left.png")
-    right1 = pygame.image.load("mouseplayer/mouseplayer_Right.png")
-    right2 = pygame.image.load("mouseplayer/mouseplayer2_Right.png")
-    up_left1 = pygame.image.load("mouseplayer/mouseplayer_Up_Left.png")
-    up_left2 = pygame.image.load("mouseplayer/mouseplayer2_Up_Left.png")
-    up_right1 = pygame.image.load("mouseplayer/mouseplayer_Up_Right.png")
-    up_right2 = pygame.image.load("mouseplayer/mouseplayer2_Up_Right.png")
-    down_right1 = pygame.image.load("mouseplayer/mouseplayer_Down_Right.png")
-    down_right2 = pygame.image.load("mouseplayer/mouseplayer2_Down_Right.png")
-    down_left1 = pygame.image.load("mouseplayer/mouseplayer_Down_Left.png")
-    down_left2 = pygame.image.load("mouseplayer/mouseplayer2_Down_Left.png")
     death = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")
-    return [[right1], [death], [up_right1, up_right2], [up1, up2],
-            [down1, down2], [left1, left2], [right1, right2],
-            [up_left1, up_left2], [up_right1, up_right2],
-            [down_left1, down_left2], [down_right1, down_right2]]
+    return [up1, up2]
 pygame.init()
 screen = pygame.display.set_mode((1800,1000))
 pygame.display.set_caption("Mouse Race")
