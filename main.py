@@ -112,7 +112,16 @@ class Player:
                     #else:
                      #   self.set_direction(Direction.Right)
         print(self.whichImageDirection)
-    def goTo(self, coordinateX, coordinateY):
+    def isNear(self, range, posX, posY):
+        if(self.posX>posX-range and self.posX<posX+range):
+            if (self.posY > posY - range and self.posY < posY + range):
+                return True
+        return False
+    def goTo(self, coordinateX, coordinateY, mousePlayerList):
+        howNear=50
+        for mouse in mousePlayerList:
+            if(self!=mouse and mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY)):
+                return #someone else is standing there
         self.posX = self.posX+coordinateX
         self.posY = self.posY+coordinateY
         print("coordinates:", coordinateX, " , ", coordinateY)
@@ -186,7 +195,7 @@ def running_loop(screen, mPL):
             print("s")
             coordinateY[Team.blue] += movement
         for mouse in mousePlayerList:
-            mouse.goTo(coordinateX[mouse.team], coordinateY[mouse.team])
+            mouse.goTo(coordinateX[mouse.team], coordinateY[mouse.team], mousePlayerList)
             mouse.draw(screen)
             mouse.gainendurance()
             print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
