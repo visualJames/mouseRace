@@ -137,9 +137,17 @@ def hexToColour( hash_colour ):
     blue  = int( hash_colour[5:7], 16 )
     return ( red, green, blue )
 
-def getNameAsImage(name, font_size):
+
+
+class Color(Enum):
+    Blue= '#4169E1'
+    Red= '#FF0000'
+    Black= '#000000'
+    Grey= '#787878'
+
+def getNameAsImage(name, font_size, color=Color.Grey):
     font = pygame.font.SysFont(None, font_size)
-    return font.render(name, True, hexToColour('#787878'))
+    return font.render(name, True, hexToColour(color.value))
 
 class Player:
     name="Player"
@@ -209,10 +217,10 @@ class Player:
             self.posY += y
     def getColor(self):
         if(self.team==Team.blue):
-            return '#4169E1' #'#0000FF'
+            return Color.Blue.value
         if (self.team == Team.red):
-            return '#FF0000'#'#A52A2A'
-        return '#000000'
+            return Color.Red.value
+        return Color.Black.value
     def draw(self, screen):
         image = pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value)
         imageBackground = pygame.transform.rotate(pygame.transform.scale(colorize(
@@ -251,6 +259,21 @@ class Minimap(pygame.sprite.Sprite):
         self.posX = self.width-width_view/size_relation
         self.posY = 0
         self.size_relation=size_relation
+        self.hearth =  pygame.image.load("Hearth/heart.png")
+    def draw_teams(self, font_size, color, team, name_team, start_posY, step):
+        screen.blit(getNameAsImage("Team:", font_size), (self.posX, start_posY))
+        screen.blit(getNameAsImage(name_team, font_size, color),
+                    (self.posX + 65, start_posY + 2))
+        y = 22
+        for mouse in team:
+            screen.blit(getNameAsImage(mouse.name, font_size),
+                        (self.posX + 25, start_posY + y))
+            for i in range(0, mouse.leben):
+                screen.blit(self.hearth,
+                            (self.posX + 145 + i * 10, start_posY + y + 5))
+            screen.blit(getNameAsImage("(" + str(mouse.posX) + "," + str(mouse.posY) + ")", font_size),
+                        (self.posX + 225, start_posY + y))
+            y += step
 
     def draw(self, screen):
         self.image = self.surface.copy()
@@ -260,6 +283,21 @@ class Minimap(pygame.sprite.Sprite):
             posX = mouse.posX / self.size_relation + self.posX
             posY = mouse.posY / self.size_relation + self.posY
             mouse.draw_Minimap(screen, round(100/self.size_relation), posX, posY)
+
+        step = 20
+        font_size = 28
+        color = Color.Blue
+        team = Team.getTeam(Team.blue, mousePlayerList)
+        name_team = "BLUE"
+        start_posY = self.posY + self.height/self.size_relation
+        self.draw_teams(font_size, color, team, name_team, start_posY, step)
+        color = Color.Red
+        team = Team.getTeam(Team.red, mousePlayerList)
+        name_team = "RED"
+        start_posY = self.posY + self.height / self.size_relation + (len(team)+3)*step
+        self.draw_teams(font_size, color, team, name_team, start_posY, step)
+
+
 
 class Camera:
     def __init__(self, posX, posY):
