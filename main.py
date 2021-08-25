@@ -137,6 +137,10 @@ def hexToColour( hash_colour ):
     blue  = int( hash_colour[5:7], 16 )
     return ( red, green, blue )
 
+def getNameAsImage(name, font_size):
+    font = pygame.font.SysFont(None, font_size)
+    return font.render(name, True, hexToColour('#787878'))
+
 class Player:
     name="Player"
     posX = 420
@@ -216,6 +220,8 @@ class Player:
                                                  , (102,102)), self.whichImageDirection.value)
         screen.blit(imageBackground, (self.posX, self.posY))
         screen.blit(image, (self.posX, self.posY))
+        font_size = 21
+        screen.blit(getNameAsImage(self.name, font_size),(self.posX+25, self.posY+85))
 
     def draw_Minimap(self, screen, size, posX_map, posY_map):
         image = pygame.transform.scale(pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value),(size,size))
@@ -224,6 +230,8 @@ class Player:
             , (102, 102)), self.whichImageDirection.value),(size,size))
         screen.blit(imageBackground, (posX_map, posY_map))
         screen.blit(image, (posX_map, posY_map))
+        font_size = 7
+        #screen.blit(getNameAsImage(self.name, font_size), (posX_map + 3, posY_map + 9))
     #try it with this logic and it will work better and rotate automatically
 
 def quit_sequence(quit):
@@ -362,11 +370,19 @@ screen = pygame.display.set_mode((1800,1000))
 pygame.display.set_caption("Mouse Race")
 mouseheadImage = pygame.image.load('mousehead/mousehead.png')
 pygame.display.set_icon(mouseheadImage)
-
-mousePlayerList = [Player("Maus1", 120, 80, load_images(), 3, 5, Team.red),Player("Maus1", 120, 180, load_images(), 3, 5, Team.red),
-                    Player("Maus1", 120, 280, load_images(), 3, 5, Team.red),Player("Maus1", 120, 380, load_images(), 3, 5, Team.red),
-                   Player("Maus1", 120, 480, load_images(), 3, 5, Team.blue),Player("Maus1", 120, 580, load_images(), 3, 5, Team.blue),
-                   Player("Maus1", 120, 680, load_images(), 3, 5, Team.blue),Player("Maus1", 120, 780, load_images(), 3, 5, Team.blue)]
+nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
+nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
+mousePlayerList = []
+y=150
+team = Team.red
+for name in nameList:
+    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 5, team))
+    y+=150
+team = Team.blue
+y= 75
+for name in nameList2:
+    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 5, team))
+    y += 150
 running_loop(screen, mousePlayerList)
 
 
