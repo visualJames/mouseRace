@@ -255,6 +255,14 @@ def running_loop(screen, mPL):
         if keys[pygame.K_DOWN]:
             print("Down")
             coordinateY[Team.red]+=movement
+        hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing]
+        if keys[pygame.K_COMMA]:
+            print("Comma")
+            hive_direction[Team.red] = Hive_Direction.Diverge
+        if keys[pygame.K_MINUS]:
+            print("Minus")
+            hive_direction[Team.red] = Hive_Direction.Merge
+
         if keys[pygame.K_a]:
             print("a")
             coordinateX[Team.blue] -= movement
@@ -267,7 +275,6 @@ def running_loop(screen, mPL):
         if keys[pygame.K_s]:
             print("s")
             coordinateY[Team.blue] += movement
-        hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing]
         if keys[pygame.K_q]:
             print("q")
             hive_direction[Team.blue] = Hive_Direction.Diverge
