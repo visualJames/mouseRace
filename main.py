@@ -406,7 +406,7 @@ def load_images():
 pygame.init()
 screen = pygame.display.set_mode((1800,1000))
 pygame.display.set_caption("Mouse Race")
-mouseheadImage = pygame.image.load('mousehead/mousehead.png')
+mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame.image.load('mousehead/mousehead.png')
 pygame.display.set_icon(mouseheadImage)
 nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
 nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
