@@ -1,6 +1,18 @@
 import pygame
 from enum import Enum
 
+
+def get_diff(this, other):
+    if (this > other):
+        return this - other
+    else:
+        return -(other - this)
+
+class Hive_Direction(Enum):
+    Nothing = 0
+    Merge = 1
+    Diverge = 2
+
 class Direction(Enum):
     Up = 0
     Up_Left = 45
@@ -11,15 +23,97 @@ class Direction(Enum):
     Right = 270
     Up_Right = 315
 
+    def opposite(self):
+        if self==Direction.Up:
+            return Direction.Down
+        if self==Direction.Up_Left:
+            return Direction.Down_Right
+        if self==Direction.Left:
+            return Direction.Right
+        if self==Direction.Down_Left:
+            return Direction.Up_Right
+        if self==Direction.Down:
+            return Direction.Up
+        if self==Direction.Down_Right:
+            return Direction.Up_Left
+        if self==Direction.Right:
+            return Direction.Left
+        if self==Direction.Up_Right:
+            return Direction.Down_Left
+
+    def move(self, movement):
+        if self==Direction.Up:
+            return (0,-movement)
+        if self==Direction.Up_Left:
+            return (-movement,-movement)
+        if self==Direction.Left:
+            return (-movement,0)
+        if self==Direction.Down_Left:
+            return (-movement,movement)
+        if self==Direction.Down:
+            return (0,movement)
+        if self==Direction.Down_Right:
+            return (movement,movement)
+        if self==Direction.Right:
+            return (movement,0)
+        if self==Direction.Up_Right:
+            return (movement,-movement)
+
 
     def get_diff(self, direction):
-        if(self.value>direction.value):
-            return self.value-direction.value
+        get_diff(self.value, direction.value)
+    def average(list):
+        coordinateX=0
+        coordinateY=0
+        for mouse in list:
+            coordinateX+=mouse.posX
+            coordinateY+=mouse.posY
+        length = len(list)
+        return (coordinateX//length, coordinateY//length)
+    def aboveOrUnder(this:(int,int), other:(int,int)):
+        (thisX, thisY) = this
+        (otherX, otherY) = other
+        diffX = -get_diff(thisX, otherX)
+        diffY = -get_diff(thisY, otherY)
+        print(otherY, "=",thisY ,"+ (",diffY, ")")
+        return Direction.aboveOrUnderDiff(diffX, diffY)
+    def aboveOrUnderDiff(coordinateX:int, coordinateY:int):
+        if (coordinateX > 0):
+            if (coordinateY > 0):
+                return Direction.Down_Right
+            else:
+                if (coordinateY < 0):
+                    return Direction.Up_Right
+                else:
+                    return Direction.Right
         else:
-            return -(direction.value-self.value)
+            if (coordinateX < 0):
+                if (coordinateY > 0):
+                    return Direction.Down_Left
+                else:
+                    if (coordinateY < 0):
+                        return Direction.Up_Left
+                    else:
+                        return Direction.Left
+            else:
+                if (coordinateY < 0):
+                    print("upDirection:", coordinateX, coordinateY)
+                    return Direction.Up
+                else:
+                    if (coordinateY > 0):
+                        print("downDirection", coordinateX, coordinateY)
+                        return Direction.Down
+                    else: print("None in aboveOrUnder")
+
 class Team:
     red=0
     blue=1
+    def getTeam(team, list):
+        l = []
+        for mouse in list:
+            if mouse.team==team:
+                l.append(mouse)
+        return l
 def colorize(image, newColor):
     """
     Create a "colorized" copy of a surface (replaces RGB values with the given color, preserving the per-pixel alphas of
@@ -62,7 +156,7 @@ class Player:
         self.endurance = endurance
         self.whichImageDirection=Direction.Right
         self.team = team
-    def set_direction(self, direction):
+    def set_direction(self, direction: 'Direction'):
         angle = self.whichImageDirection.get_diff(direction)
         print(angle, direction)
         self.whichImageDirection = direction
@@ -83,53 +177,32 @@ class Player:
         self.leben = self.leben + 1
     def gainendurance(self):
         self.endurance = self.endurance + 1
-    def change_image(self, coordinateX, coordinateY):
-        if (coordinateX > 0):
-            if (coordinateY > 0):
-                self.set_direction(Direction.Down_Right)
-            else:
-                if (coordinateY < 0):
-                    self.set_direction(Direction.Up_Right)
-                else:
-                    self.set_direction(Direction.Right)
-        else:
-            if (coordinateX < 0):
-                if (coordinateY > 0):
-                    self.set_direction(Direction.Down_Left)
-                else:
-                    if (coordinateY < 0):
-                        self.set_direction(Direction.Up_Left)
-                    else:
-                        self.set_direction(Direction.Left)
-            else:
-                if (coordinateY < 0):
-                    print("upDirection:", coordinateX, coordinateY)
-                    self.set_direction(Direction.Up)
-                else:
-                    if(coordinateY > 0):
-                        print("downDirection", coordinateX, coordinateY)
-                        self.set_direction(Direction.Down)
-                    #else:
-                     #   self.set_direction(Direction.Right)
+    def change_image(self, direction: 'Direction'):
+        self.set_direction(direction)
         print(self.whichImageDirection)
     def isNear(self, range, posX, posY):
         if(self.posX>posX-range and self.posX<posX+range):
             if (self.posY > posY - range and self.posY < posY + range):
                 return True
         return False
-    def goTo(self, coordinateX, coordinateY, mousePlayerList):
+    def goTo(self, coordinateX, coordinateY, mousePlayerList, hive_direction):
+        movement = 2
         howNear=50
         for mouse in mousePlayerList:
             if(self!=mouse and mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY)):
                 return #someone else is standing there
-        self.posX = self.posX+coordinateX
-        self.posY = self.posY+coordinateY
-        print("coordinates:", coordinateX, " , ", coordinateY)
-        self.change_image(coordinateX,coordinateY)
-        if(coordinateX!=0 or coordinateY!=0):
-            self.whichImageExactly +=1
-            if(self.whichImageExactly>=len(self.images)):
-                self.whichImageExactly = 0
+
+        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
+        if direction != None:
+            self.change_image(direction)
+            if(coordinateX!=0 or coordinateY!=0):
+                self.whichImageExactly +=1
+                if(self.whichImageExactly>=len(self.images)):
+                    self.whichImageExactly = 0
+
+            (x, y) = direction.move(movement)
+            self.posX += x
+            self.posY += y
     def getColor(self):
         if(self.team==Team.red):
             return '#4169E1' #'#0000FF'
@@ -194,8 +267,25 @@ def running_loop(screen, mPL):
         if keys[pygame.K_s]:
             print("s")
             coordinateY[Team.blue] += movement
+        hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing]
+        if keys[pygame.K_q]:
+            print("q")
+            hive_direction[Team.blue] = Hive_Direction.Diverge
+        if keys[pygame.K_e]:
+            print("e")
+            hive_direction[Team.blue] = Hive_Direction.Merge
         for mouse in mousePlayerList:
-            mouse.goTo(coordinateX[mouse.team], coordinateY[mouse.team], mousePlayerList)
+            (coordinateX_Hive, coordinateY_Hive) = (0, 0)
+            if hive_direction[mouse.team]!=Hive_Direction.Nothing:
+                team = Team.getTeam(mouse.team, mousePlayerList)
+                direction = Direction.aboveOrUnder((mouse.posX, mouse.posY), Direction.average(team))
+                if direction != None:
+                    if hive_direction[mouse.team]==Hive_Direction.Merge:
+                        (coordinateX_Hive, coordinateY_Hive) = direction.move(movement)
+                    else:#Diverge
+                        (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
+
+            mouse.goTo(coordinateX[mouse.team]+coordinateX_Hive, coordinateY[mouse.team]+coordinateY_Hive, mousePlayerList, hive_direction)
             mouse.draw(screen)
             mouse.gainendurance()
             print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
