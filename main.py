@@ -216,6 +216,14 @@ class Player:
                                                  , (102,102)), self.whichImageDirection.value)
         screen.blit(imageBackground, (self.posX, self.posY))
         screen.blit(image, (self.posX, self.posY))
+
+    def draw_Minimap(self, screen, size, posX_map, posY_map):
+        image = pygame.transform.scale(pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value),(size,size))
+        imageBackground = pygame.transform.scale(pygame.transform.rotate(pygame.transform.scale(colorize(
+            self.images[self.whichImageExactly], hexToColour(self.getColor()))
+            , (102, 102)), self.whichImageDirection.value),(size,size))
+        screen.blit(imageBackground, (posX_map, posY_map))
+        screen.blit(image, (posX_map, posY_map))
     #try it with this logic and it will work better and rotate automatically
 
 def quit_sequence(quit):
@@ -223,10 +231,53 @@ def quit_sequence(quit):
     print("quit")
     return quit
 
+class Minimap(pygame.sprite.Sprite):
+    def __init__(self, game, width_view, height_view, size_relation):
+        pygame.sprite.Sprite.__init__(self)
+        self.width = game.map.width
+        self.height = game.map.height
+        self.surface = pygame.Surface((round(self.width/size_relation), round(self.height/size_relation)))
+        self.surface.fill((0, 0, 0))
+        self.game = game
+        self.image = self.surface
+        self.posX = self.width-width_view/size_relation
+        self.posY = 0
+        self.size_relation=size_relation
+
+    def draw(self, screen):
+        self.image = self.surface.copy()
+        screen.blit(self.image, (self.posX, self.posY))
+
+        for mouse in self.game.mPL:
+            posX = mouse.posX / self.size_relation + self.posX
+            posY = mouse.posY / self.size_relation + self.posY
+            mouse.draw_Minimap(screen, round(100/self.size_relation), posX, posY)
+
+class Camera:
+    def __init__(self, posX, posY):
+        self.posX = posX
+        self.posY = posY
+class Map:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+class Game:
+    def __init__(self, mPL, camera, map):
+        self.mPL= mPL
+        self.camera=camera
+        self.map = map
+
 def running_loop(screen, mPL):
     quit = False
     mousePlayerList = mPL
     movement = 2
+    camera = Camera(0,0)
+    width = screen.get_width()
+    height = screen.get_height()
+    map = Map(width, height)
+    game = Game(mPL, camera, map)
+    size_relation = 5
+    minimap = Minimap(game,width, height, size_relation)
     # RGB- RED, Green, Blue
     while not quit:
         coordinateX = [0,0]
@@ -296,6 +347,7 @@ def running_loop(screen, mPL):
             mouse.draw(screen)
             mouse.gainendurance()
             print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
+        minimap.draw(screen)
         pygame.display.update()
 
 def load_images():
