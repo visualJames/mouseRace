@@ -1,5 +1,8 @@
+import random
+
 import pygame
 from enum import Enum
+import numpy
 
 
 def get_diff(this, other):
@@ -150,22 +153,16 @@ def getNameAsImage(name, font_size, color=Color.Grey):
     return font.render(name, True, hexToColour(color.value))
 
 class Player:
-    name="Player"
-    posX = 420
-    posY = 420
-    images=None
-    leben=3
-    endurance= 10
-    whichImageDirection=Direction
     whichImageExactly=0
-    team=Team.red
-    def __init__(self, name, posX, posY, images, leben, endurance, team):
+    def __init__(self, name, posX, posY, images, live, endurance, team):
         self.name = name
         self.posX = posX
         self.posY = posY
         self.images = images
-        self.leben = leben
-        self.endurance = endurance
+        self.live = live-1
+        self.max_life = live
+        self.endurance = endurance-1
+        self.max_endurance = endurance
         self.whichImageDirection=Direction.Right
         self.team = team
     def set_direction(self, direction: 'Direction'):
@@ -175,8 +172,8 @@ class Player:
         #for i in range(0,len(self.images)):
         #    self.images[i] = pygame.transform.rotate(self.images[i], angle)
     def loseLive(self):
-        self.leben=self.leben-1
-        if(self.leben<=0):
+        self.live=self.live-1
+        if(self.live<=0):
             #death
             print("death")
     def loseendurance(self):
@@ -186,9 +183,11 @@ class Player:
         else:
             return False
     def gainLive(self):
-        self.leben = self.leben + 1
+        if self.live < self.max_life:
+            self.live = self.live + 1
     def gainendurance(self):
-        self.endurance = self.endurance + 1
+        if self.endurance < self.max_endurance:
+            self.endurance = self.endurance + 1
     def change_image(self, direction: 'Direction'):
         self.set_direction(direction)
         print(self.whichImageDirection)
@@ -260,6 +259,9 @@ class Minimap(pygame.sprite.Sprite):
         self.posY = 0
         self.size_relation=size_relation
         self.hearth =  pygame.image.load("Hearth/heart.png")
+        self.hearth_not_here = pygame.image.load("Hearth/heart_not_here.png")
+        self.sweat = pygame.image.load("Sweat/Sweat.png")
+        self.sweat_not_here = pygame.image.load("Sweat/Sweat_not_here.png")
     def draw_teams(self, font_size, color, team, name_team, start_posY, step):
         screen.blit(getNameAsImage("Team:", font_size), (self.posX, start_posY))
         screen.blit(getNameAsImage(name_team, font_size, color),
@@ -268,11 +270,20 @@ class Minimap(pygame.sprite.Sprite):
         for mouse in team:
             screen.blit(getNameAsImage(mouse.name, font_size),
                         (self.posX + 25, start_posY + y))
-            for i in range(0, mouse.leben):
+            for i in range(0, mouse.live):
                 screen.blit(self.hearth,
                             (self.posX + 145 + i * 10, start_posY + y + 5))
+            for i in range(mouse.live, mouse.max_life):
+                screen.blit(self.hearth_not_here,
+                            (self.posX + 145 + i * 10, start_posY + y + 5))
+            for i in range(0, mouse.endurance):
+                screen.blit(self.sweat,
+                            (self.posX + 195 + i * 10, start_posY + y + 5))
+            for i in range(mouse.endurance, mouse.max_endurance):
+                screen.blit(self.sweat_not_here,
+                            (self.posX + 195 + i * 10, start_posY + y + 5))
             screen.blit(getNameAsImage("(" + str(mouse.posX) + "," + str(mouse.posY) + ")", font_size),
-                        (self.posX + 225, start_posY + y))
+                        (self.posX + 235, start_posY + y))
             y += step
 
     def draw(self, screen):
@@ -391,7 +402,8 @@ def running_loop(screen, mPL):
 
             mouse.goTo(coordinateX[mouse.team]+coordinateX_Hive, coordinateY[mouse.team]+coordinateY_Hive, mousePlayerList, hive_direction)
             mouse.draw(screen)
-            mouse.gainendurance()
+            if numpy.random.random_sample()<=0.01:
+                mouse.gainendurance()
             print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
         minimap.draw(screen)
         pygame.display.update()
@@ -414,12 +426,12 @@ mousePlayerList = []
 y=150
 team = Team.red
 for name in nameList:
-    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 5, team))
+    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
     y+=150
 team = Team.blue
 y= 75
 for name in nameList2:
-    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 5, team))
+    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
     y += 150
 running_loop(screen, mousePlayerList)
 
