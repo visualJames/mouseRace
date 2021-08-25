@@ -204,9 +204,9 @@ class Player:
             self.posX += x
             self.posY += y
     def getColor(self):
-        if(self.team==Team.red):
+        if(self.team==Team.blue):
             return '#4169E1' #'#0000FF'
-        if (self.team == Team.blue):
+        if (self.team == Team.red):
             return '#FF0000'#'#A52A2A'
         return '#000000'
     def draw(self, screen):
