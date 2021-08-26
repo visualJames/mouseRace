@@ -108,10 +108,19 @@ class Direction(Enum):
                         return Direction.Down
                     else: print("None in aboveOrUnder")
 
-class Team:
+class Team(Enum):
     Red=0
     Blue=1
     No_team=2
+    def getName(self):
+        return self.name
+    def getColor(self):
+        if self==Team.Blue:
+            return Color.Blue
+        if self==Team.Red:
+            return Color.Red
+        if self==Team.No_team:
+            return Color.Grey
     def getTeam(team, list):
         l = []
         for mouse in list:
@@ -298,7 +307,7 @@ class Minimap(pygame.sprite.Sprite):
         self.hearth_not_here = pygame.image.load("Hearth/heart_not_here.png")
         self.sweat = pygame.image.load("Sweat/Sweat.png")
         self.sweat_not_here = pygame.image.load("Sweat/Sweat_not_here.png")
-    def draw_teams(self, font_size, color, team, name_team, start_posY, step):
+    def draw_teams(self, screen, font_size, color, team, name_team, start_posY, step):
         screen.blit(getNameAsImage("Team:", font_size), (self.posX, start_posY))
         screen.blit(getNameAsImage(name_team, font_size, color),
                     (self.posX + 65, start_posY + 2))
@@ -333,18 +342,18 @@ class Minimap(pygame.sprite.Sprite):
 
         step = 20
         font_size = 28
-        color = Color.Blue
-        team = Team.getTeam(Team.Blue, mousePlayerList)
-        name_team = "BLUE"
-        start_posY = self.posY + self.height/self.size_relation
-        self.draw_teams(font_size, color, team, name_team, start_posY, step)
-        color = Color.Red
-        team = Team.getTeam(Team.Red, mousePlayerList)
-        name_team = "RED"
-        start_posY = self.posY + self.height / self.size_relation + (len(team)+3)*step
-        self.draw_teams(font_size, color, team, name_team, start_posY, step)
-
-
+        lenOldTeams=0
+        i = 1
+        for team in Team:
+            start_posY = self.posY + self.height / self.size_relation + (lenOldTeams + i) * step
+            color = team.getColor()
+            print(color, "Color")
+            team_list = team.getTeam(self.game.mPL)
+            print("team_list", team_list)
+            name_team = team.getName()
+            self.draw_teams(screen, font_size, color, team_list, name_team, start_posY, step)
+            lenOldTeams += len(team_list)
+            i+=3
 
 class Camera:
     def __init__(self, posX, posY):
@@ -383,54 +392,54 @@ def running_loop(screen, game):
                     print("special")
         if keys[pygame.K_LEFT]:
             print("Left")
-            coordinateX[Team.Red]-=movement
+            coordinateX[Team.Red.value]-=movement
         if keys[pygame.K_RIGHT]:
             print("Right")
-            coordinateX[Team.Red]+=movement
+            coordinateX[Team.Red.value]+=movement
         if keys[pygame.K_UP]:
             print("Up")
-            coordinateY[Team.Red]-=movement
+            coordinateY[Team.Red.value]-=movement
         if keys[pygame.K_DOWN]:
             print("Down")
-            coordinateY[Team.Red]+=movement
+            coordinateY[Team.Red.value]+=movement
         hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing, Hive_Direction.Nothing]
         if keys[pygame.K_COMMA]:
             print("Comma")
-            hive_direction[Team.Red] = Hive_Direction.Diverge
+            hive_direction[Team.Red.value] = Hive_Direction.Diverge
         if keys[pygame.K_MINUS]:
             print("Minus")
-            hive_direction[Team.Red] = Hive_Direction.Merge
+            hive_direction[Team.Red.value] = Hive_Direction.Merge
 
         if keys[pygame.K_a]:
             print("a")
-            coordinateX[Team.Blue] -= movement
+            coordinateX[Team.Blue.value] -= movement
         if keys[pygame.K_d]:
             print("d")
-            coordinateX[Team.Blue] += movement
+            coordinateX[Team.Blue.value] += movement
         if keys[pygame.K_w]:
             print("w")
-            coordinateY[Team.Blue] -= movement
+            coordinateY[Team.Blue.value] -= movement
         if keys[pygame.K_s]:
             print("s")
-            coordinateY[Team.Blue] += movement
+            coordinateY[Team.Blue.value] += movement
         if keys[pygame.K_q]:
             print("q")
-            hive_direction[Team.Blue] = Hive_Direction.Diverge
+            hive_direction[Team.Blue.value] = Hive_Direction.Diverge
         if keys[pygame.K_e]:
             print("e")
-            hive_direction[Team.Blue] = Hive_Direction.Merge
+            hive_direction[Team.Blue.value] = Hive_Direction.Merge
         for mouse in game.mPL:
             (coordinateX_Hive, coordinateY_Hive) = (0, 0)
-            if hive_direction[mouse.team]!=Hive_Direction.Nothing:
-                team = Team.getTeam(mouse.team, game.mPL)
+            if hive_direction[mouse.team.value]!=Hive_Direction.Nothing:
+                team = mouse.team.getTeam(game.mPL)
                 direction = Direction.aboveOrUnder((mouse.posX, mouse.posY), Direction.average(team))
                 if direction != None:
-                    if hive_direction[mouse.team]==Hive_Direction.Merge:
+                    if hive_direction[mouse.team.value]==Hive_Direction.Merge:
                         (coordinateX_Hive, coordinateY_Hive) = direction.move(movement)
                     else:#Diverge
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
 
-            mouse.goTo(coordinateX[mouse.team]+coordinateX_Hive, coordinateY[mouse.team]+coordinateY_Hive, game, hive_direction)
+            mouse.goTo(coordinateX[mouse.team.value]+coordinateX_Hive, coordinateY[mouse.team.value]+coordinateY_Hive, game, hive_direction)
             mouse.draw(screen)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
@@ -445,35 +454,37 @@ def load_images():
     up4 = pygame.image.load("mouseplayer/mouseplayer4_Up.png")
     death = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")
     return [up1, up4, up3, up2, up3, up4]
-pygame.init()
-screen = pygame.display.set_mode((1800,1000))
-pygame.display.set_caption("Mouse Race")
-mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame.image.load('mousehead/mousehead.png')
-pygame.display.set_icon(mouseheadImage)
-nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
-nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
-nameList3 = ["Sven", "Max", "Lukas"]
-mousePlayerList = []
-y=150
-team = Team.Red
-for name in nameList:
-    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
-    y+=150
-team = Team.Blue
-y= 75
-for name in nameList2:
-    mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
-    y += 150
-team = Team.No_team
-y = 275
-for name in nameList3:
-    mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
-    y += 150
-camera = Camera(0,0)
-width = screen.get_width()
-height = screen.get_height()
-map = Map(width, height)
-game = Game(mousePlayerList, camera, map)
-running_loop(screen, game)
+def init():
+    pygame.init()
+    screen = pygame.display.set_mode((1800,1000))
+    pygame.display.set_caption("Mouse Race")
+    mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame.image.load('mousehead/mousehead.png')
+    pygame.display.set_icon(mouseheadImage)
+    nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
+    nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
+    nameList3 = ["Sven", "Max", "Lukas"]
+    mousePlayerList = []
+    y=150
+    team = Team.Red
+    for name in nameList:
+        mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
+        y+=150
+    team = Team.Blue
+    y= 75
+    for name in nameList2:
+        mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
+        y += 150
+    team = Team.No_team
+    y = 275
+    for name in nameList3:
+        mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
+        y += 150
+    camera = Camera(0,0)
+    width = screen.get_width()
+    height = screen.get_height()
+    map = Map(width, height)
+    game = Game(mousePlayerList, camera, map)
+    running_loop(screen, game)
+init()
 
 
