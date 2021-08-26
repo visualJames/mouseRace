@@ -417,17 +417,20 @@ def quit_sequence(quit):
     return quit
 
 class Minimap(pygame.sprite.Sprite):
-    def __init__(self, game, width_view, height_view, size_relation):
+    def __init__(self, game):
         pygame.sprite.Sprite.__init__(self)
+        size_relation = 5
+        self.size_relationWidth = game.map.width / game.map.camera.width * size_relation
+        self.size_relationHeight = game.map.height / game.map.camera.height * size_relation
         self.width = game.map.width
         self.height = game.map.height
-        self.surface = pygame.Surface((round(self.width/size_relation), round(self.height/size_relation)))
+        self.surface = pygame.Surface((round(self.width/self.size_relationWidth),
+                                       round(self.height/self.size_relationHeight)))
         self.surface.fill((0, 0, 0))
         self.game = game
         self.image = self.surface
-        self.posX = self.width-width_view/size_relation
+        self.posX = 0
         self.posY = 0
-        self.size_relation=size_relation
         self.hearth =  pygame.image.load("Hearth/heart.png")
         self.hearth_not_here = pygame.image.load("Hearth/heart_not_here.png")
         self.sweat = pygame.image.load("Sweat/Sweat.png")
@@ -460,21 +463,21 @@ class Minimap(pygame.sprite.Sprite):
         self.image = self.surface.copy()
         map.screen.blit(self.image, (self.posX, self.posY))
 
-        minimap_size = round(100/self.size_relation)
+        minimap_size = round(100/self.size_relationWidth)
         for mouse in self.game.mPL:
-            posX = mouse.posX / self.size_relation + self.posX
-            posY = mouse.posY / self.size_relation + self.posY
+            posX = mouse.posX / self.size_relationWidth + self.posX
+            posY = mouse.posY / self.size_relationHeight + self.posY
             mouse.draw_Minimap(map.screen, minimap_size , posX, posY)
         snake = self.game.snake.Head
-        posX = snake.posX / self.size_relation + self.posX
-        posY = snake.posY / self.size_relation + self.posY
+        posX = snake.posX / self.size_relationWidth + self.posX
+        posY = snake.posY / self.size_relationHeight + self.posY
         self.game.snake.draw_Minimap(map.screen, minimap_size , posX, posY)
         step = 20
         font_size = 28
         lenOldTeams=0
         i = 1
         for team in Team:
-            start_posY = self.posY + self.height / self.size_relation + (lenOldTeams + i) * step
+            start_posY = self.posY + self.height / self.size_relationHeight + (lenOldTeams + i) * step
             color = team.getColor()
             team_list = team.getTeam(self.game.mPL)
             if not team_list:
@@ -485,9 +488,11 @@ class Minimap(pygame.sprite.Sprite):
             i+=3
 
 class Camera:
-    def __init__(self, posX, posY):
+    def __init__(self, posX, posY, width, height):
         self.posX = posX
         self.posY = posY
+        self.width = width
+        self.height = height
     def move(self, posX, posY):
         self.posX=posX
         self.posY=posY
@@ -509,14 +514,13 @@ class Game:
 def running_loop(game):
     quit = False
     movement = 2
-    size_relation = 5
-    minimap = Minimap(game,game.map.width, game.map.height, size_relation)
+    minimap = Minimap(game)
     # RGB- RED, Green, Blue
     while not quit:
         camera_pos_X = 2.6
         camera_pos_Y = 2.1
-        game.map.camera.move(game.snake.Head.posX-game.map.width/camera_pos_X,
-                             game.snake.Head.posY-game.map.height/camera_pos_Y)
+        game.map.camera.move(game.snake.Head.posX-game.map.camera.width/camera_pos_X,
+                             game.snake.Head.posY-game.map.camera.height/camera_pos_Y)
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
         game.map.screen.fill((128, 50, 0))
@@ -626,9 +630,10 @@ def init():
     snakeImageBody = pygame.transform.rotate(pygame.image.load("Snake/SnakeBody.png"), Direction.Left.value)
     snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
     snake = Snake("Snake", 200, 100, [snakeImageHead], [snakeImageBody], [snakeImageTail], 2, 2)
-    camera = Camera(100,0)
-    width = screen.get_width()
-    height = screen.get_height()
+    camera = Camera(100,0, screen.get_width(), screen.get_height())
+    size_map= 1.8
+    width = camera.width*size_map
+    height = camera.height*size_map
     map = Map(width, height, screen, camera)
     game = Game(mousePlayerList, snake, map)
     running_loop(game)
