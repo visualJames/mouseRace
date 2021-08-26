@@ -192,26 +192,54 @@ class Player:
     def change_image(self, direction: 'Direction'):
         self.set_direction(direction)
         print(self.whichImageDirection)
-    def isNear(self, range, posX, posY):
-        lenght = 1.85
-        if(self.posX>posX-range*lenght and self.posX<posX+range*lenght):
-            if (self.posY > posY - range and self.posY < posY + range):
+
+    def isNearOfDirectionValues(self, posX, posY, range, width, heigth):
+        isUp=self.posY < posY + range*heigth
+        isDown=self.posY > posY - range*heigth
+        isRight = self.posX>posX-range*width
+        isLeft = self.posX<posX+range*width
+        return (isUp, isDown, isRight, isLeft)
+    def isNear(self, range, posX, posY, width, heigth):
+        (isUp, isDown, isRight, isLeft) = self.isNearOfDirectionValues(posX, posY, range, width, heigth)
+        if(isLeft and isRight):
+            if (isUp and isDown):
                 return True
         return False
-    def goTo(self, coordinateX, coordinateY, mousePlayerList, hive_direction):
+    def isNearOfDirection(self, direction, posX, posY, range, width, heigth):
+        (isUp, isDown, isRight, isLeft) = self.isNearOfDirectionValues(posX, posY, range, width, heigth)
+        if direction==Direction.Up:
+            return isUp
+        if direction==Direction.Up_Left:
+            return  isUp or isLeft
+        if direction==Direction.Left:
+            return isLeft
+        if direction==Direction.Down_Left:
+            return isDown or isLeft
+        if direction==Direction.Down:
+            return isDown
+        if direction==Direction.Down_Right:
+            return isDown or isRight
+        if direction==Direction.Right:
+            return isRight
+        if direction==Direction.Up_Right:
+            return isUp or isRight
+
+    def goTo(self, coordinateX, coordinateY, game, hive_direction):
         movement = 2
         howNear=50
-        healing_distance = 1.65
-        for mouse in mousePlayerList:
-            if (self != mouse and mouse.isNear(howNear*healing_distance, self.posX + coordinateX, self.posY + coordinateY)):
+        healing_distance = 1.75
+        width = 0.8
+        heigth = 0.8
+        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
+        for mouse in game.mPL:
+            if (self != mouse and mouse.isNear(howNear*healing_distance, self.posX + coordinateX, self.posY + coordinateY, width, heigth)):
                 if numpy.random.random_sample()<=0.01:
                     mouse.gainLive() #heal other mouse (every mouse even of enemy team)
-                    if mouse.team==Team.No_team:
-                        mouse.team=self.team #(neutral mouse joins team)
-            if(self!=mouse and mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY)):
-                return #someone else is standing there
-
-        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
+                if mouse.team==Team.No_team:
+                    mouse.team=self.team #(neutral mouse joins team)
+                if(mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY, width, heigth)):
+                    if(mouse.isNearOfDirection(direction, self.posX+coordinateX, self.posY+coordinateY, movement, width, heigth)):
+                        return #someone else is standing there
         if direction != None:
             self.change_image(direction)
             if(coordinateX!=0 or coordinateY!=0):
@@ -332,22 +360,16 @@ class Game:
         self.camera=camera
         self.map = map
 
-def running_loop(screen, mPL):
+def running_loop(screen, game):
     quit = False
-    mousePlayerList = mPL
     movement = 2
-    camera = Camera(0,0)
-    width = screen.get_width()
-    height = screen.get_height()
-    map = Map(width, height)
-    game = Game(mPL, camera, map)
     size_relation = 5
-    minimap = Minimap(game,width, height, size_relation)
+    minimap = Minimap(game,game.map.width, game.map.height, size_relation)
     # RGB- RED, Green, Blue
     while not quit:
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        for mouse in mousePlayerList:
+        for mouse in game.mPL:
             print("vor: ",mouse.posX, mouse.posY, mouse.name, mouse.endurance)
         screen.fill((128, 50, 0))
         for event in pygame.event.get():
@@ -356,7 +378,7 @@ def running_loop(screen, mPL):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RETURN]:
             print("Enter")
-            for mouse in mousePlayerList:
+            for mouse in game.mPL:
                 if mouse.loseendurance():
                     print("special")
         if keys[pygame.K_LEFT]:
@@ -397,10 +419,10 @@ def running_loop(screen, mPL):
         if keys[pygame.K_e]:
             print("e")
             hive_direction[Team.Blue] = Hive_Direction.Merge
-        for mouse in mousePlayerList:
+        for mouse in game.mPL:
             (coordinateX_Hive, coordinateY_Hive) = (0, 0)
             if hive_direction[mouse.team]!=Hive_Direction.Nothing:
-                team = Team.getTeam(mouse.team, mousePlayerList)
+                team = Team.getTeam(mouse.team, game.mPL)
                 direction = Direction.aboveOrUnder((mouse.posX, mouse.posY), Direction.average(team))
                 if direction != None:
                     if hive_direction[mouse.team]==Hive_Direction.Merge:
@@ -408,7 +430,7 @@ def running_loop(screen, mPL):
                     else:#Diverge
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
 
-            mouse.goTo(coordinateX[mouse.team]+coordinateX_Hive, coordinateY[mouse.team]+coordinateY_Hive, mousePlayerList, hive_direction)
+            mouse.goTo(coordinateX[mouse.team]+coordinateX_Hive, coordinateY[mouse.team]+coordinateY_Hive, game, hive_direction)
             mouse.draw(screen)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
@@ -447,6 +469,11 @@ y = 275
 for name in nameList3:
     mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
     y += 150
-running_loop(screen, mousePlayerList)
+camera = Camera(0,0)
+width = screen.get_width()
+height = screen.get_height()
+map = Map(width, height)
+game = Game(mousePlayerList, camera, map)
+running_loop(screen, game)
 
 
