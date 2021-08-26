@@ -217,10 +217,10 @@ class Snake:
         # print("Tail:", tail)
         self.Body.append(tail)
         print(self.Body, "Snake-Body")
-    def draw(self,screen):
-        self.Head.draw(screen, self.size_of_shade)
+    def draw(self,map):
+        self.Head.draw(map, self.size_of_shade)
         for b in self.Body:
-            b.draw(screen,self.size_of_shade)
+            b.draw(map,self.size_of_shade)
     def draw_Minimap(self, screen, size, posX_map, posY_map):
         self.Head.draw_Minimap(screen, size, posX_map, posY_map)#Todo:better image for snake-minimap
         #for b in self.Body:
@@ -390,15 +390,15 @@ class Player:
         if (self.team == Team.Red):
             return Color.Red.value
         return Color.Black.value
-    def draw(self, screen, size_of_shade=(102,102)):
+    def draw(self, map, size_of_shade=(102,102)):
         image = pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value)
         imageBackground = pygame.transform.rotate(pygame.transform.scale(colorize(
             self.images[self.whichImageExactly], hexToColour(self.getColor()))
                                                  ,size_of_shade), self.whichImageDirection.value)
-        screen.blit(imageBackground, (self.posX, self.posY))
-        screen.blit(image, (self.posX, self.posY))
+        map.blit(imageBackground, (self.posX, self.posY))
+        map.blit(image, (self.posX, self.posY))
         font_size = 21
-        screen.blit(getNameAsImage(self.name, font_size),(self.posX+25, self.posY+85))
+        map.blit(getNameAsImage(self.name, font_size),(self.posX+25, self.posY+85))
 
     def draw_Minimap(self, screen, size, posX_map, posY_map):
         image = pygame.transform.scale(pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value),(size,size))
@@ -456,19 +456,19 @@ class Minimap(pygame.sprite.Sprite):
                         (self.posX + 235, start_posY + y))
             y += step
 
-    def draw(self, screen):
+    def draw(self, map):
         self.image = self.surface.copy()
-        screen.blit(self.image, (self.posX, self.posY))
+        map.screen.blit(self.image, (self.posX, self.posY))
 
         minimap_size = round(100/self.size_relation)
         for mouse in self.game.mPL:
             posX = mouse.posX / self.size_relation + self.posX
             posY = mouse.posY / self.size_relation + self.posY
-            mouse.draw_Minimap(screen, minimap_size , posX, posY)
+            mouse.draw_Minimap(map.screen, minimap_size , posX, posY)
         snake = self.game.snake.Head
         posX = snake.posX / self.size_relation + self.posX
         posY = snake.posY / self.size_relation + self.posY
-        self.game.snake.draw_Minimap(screen, minimap_size , posX, posY)
+        self.game.snake.draw_Minimap(map.screen, minimap_size , posX, posY)
         step = 20
         font_size = 28
         lenOldTeams=0
@@ -480,7 +480,7 @@ class Minimap(pygame.sprite.Sprite):
             if not team_list:
                 continue
             name_team = team.getName()
-            self.draw_teams(screen, font_size, color, team_list, name_team, start_posY, step)
+            self.draw_teams(map.screen, font_size, color, team_list, name_team, start_posY, step)
             lenOldTeams += len(team_list)
             i+=3
 
@@ -488,27 +488,38 @@ class Camera:
     def __init__(self, posX, posY):
         self.posX = posX
         self.posY = posY
+    def move(self, posX, posY):
+        self.posX=posX
+        self.posY=posY
 class Map:
-    def __init__(self, width, height):
+    def __init__(self, width, height, screen, camera):
         self.width = width
         self.height = height
+        self.screen = screen
+        self.camera = camera
+    def blit(self, image, pos):
+        (posX, posY)=pos
+        self.screen.blit(image, (posX-self.camera.posX, posY-self.camera.posY))
 class Game:
-    def __init__(self, mPL, snake, camera, map):
+    def __init__(self, mPL, snake, map):
         self.mPL= mPL
         self.snake = snake
-        self.camera=camera
         self.map = map
 
-def running_loop(screen, game):
+def running_loop(game):
     quit = False
     movement = 2
     size_relation = 5
     minimap = Minimap(game,game.map.width, game.map.height, size_relation)
     # RGB- RED, Green, Blue
     while not quit:
+        camera_pos_X = 2.6
+        camera_pos_Y = 2.1
+        game.map.camera.move(game.snake.Head.posX-game.map.width/camera_pos_X,
+                             game.snake.Head.posY-game.map.height/camera_pos_Y)
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        screen.fill((128, 50, 0))
+        game.map.screen.fill((128, 50, 0))
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
                 quit = quit_sequence(quit)
@@ -568,15 +579,15 @@ def running_loop(screen, game):
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
 
             mouse.goTo(coordinateX[mouse.team.value]+coordinateX_Hive, coordinateY[mouse.team.value]+coordinateY_Hive, game)
-            mouse.draw(screen)
+            mouse.draw(game.map)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
         (snakeDirectionX, snakeDirectionY) = pygame.mouse.get_pos()
         snakeDirectionX -= game.snake.Head.posX
         snakeDirectionY -= game.snake.Head.posY
         game.snake.goTo(snakeDirectionX, snakeDirectionY, game)
-        game.snake.draw(screen)
-        minimap.draw(screen)
+        game.snake.draw(game.map)
+        minimap.draw(game.map)
         pygame.display.update()
 
 def load_images():
@@ -588,7 +599,7 @@ def load_images():
     return [up1, up4, up3, up2, up3, up4]
 def init():
     pygame.init()
-    screen = pygame.display.set_mode((1800,1000))
+    screen = pygame.display.set_mode((1910,1005))
     pygame.display.set_caption("Mouse Race")
     mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame.image.load('mousehead/mousehead.png')
     pygame.display.set_icon(mouseheadImage)
@@ -615,12 +626,12 @@ def init():
     snakeImageBody = pygame.transform.rotate(pygame.image.load("Snake/SnakeBody.png"), Direction.Left.value)
     snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
     snake = Snake("Snake", 200, 100, [snakeImageHead], [snakeImageBody], [snakeImageTail], 2, 2)
-    camera = Camera(0+screen.get_width()/2,0+screen.get_height()/2)
+    camera = Camera(100,0)
     width = screen.get_width()
     height = screen.get_height()
-    map = Map(width, height)
-    game = Game(mousePlayerList, snake, camera, map)
-    running_loop(screen, game)
+    map = Map(width, height, screen, camera)
+    game = Game(mousePlayerList, snake, map)
+    running_loop(game)
 init()
 
 
