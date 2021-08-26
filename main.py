@@ -109,8 +109,9 @@ class Direction(Enum):
                     else: print("None in aboveOrUnder")
 
 class Team:
-    red=0
-    blue=1
+    Red=0
+    Blue=1
+    No_team=2
     def getTeam(team, list):
         l = []
         for mouse in list:
@@ -199,7 +200,13 @@ class Player:
     def goTo(self, coordinateX, coordinateY, mousePlayerList, hive_direction):
         movement = 2
         howNear=50
+        healing_distance = 1.5
         for mouse in mousePlayerList:
+            if (self != mouse and mouse.isNear(howNear*healing_distance, self.posX + coordinateX, self.posY + coordinateY)):
+                if numpy.random.random_sample()<=0.01:
+                    mouse.gainLive() #heal other mouse (every mouse even of enemy team)
+                    if mouse.team==Team.No_team:
+                        mouse.team=self.team #(neutral mouse joins team)
             if(self!=mouse and mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY)):
                 return #someone else is standing there
 
@@ -215,9 +222,9 @@ class Player:
             self.posX += x
             self.posY += y
     def getColor(self):
-        if(self.team==Team.blue):
+        if(self.team==Team.Blue):
             return Color.Blue.value
-        if (self.team == Team.red):
+        if (self.team == Team.Red):
             return Color.Red.value
         return Color.Black.value
     def draw(self, screen):
@@ -298,12 +305,12 @@ class Minimap(pygame.sprite.Sprite):
         step = 20
         font_size = 28
         color = Color.Blue
-        team = Team.getTeam(Team.blue, mousePlayerList)
+        team = Team.getTeam(Team.Blue, mousePlayerList)
         name_team = "BLUE"
         start_posY = self.posY + self.height/self.size_relation
         self.draw_teams(font_size, color, team, name_team, start_posY, step)
         color = Color.Red
-        team = Team.getTeam(Team.red, mousePlayerList)
+        team = Team.getTeam(Team.Red, mousePlayerList)
         name_team = "RED"
         start_posY = self.posY + self.height / self.size_relation + (len(team)+3)*step
         self.draw_teams(font_size, color, team, name_team, start_posY, step)
@@ -337,8 +344,8 @@ def running_loop(screen, mPL):
     minimap = Minimap(game,width, height, size_relation)
     # RGB- RED, Green, Blue
     while not quit:
-        coordinateX = [0,0]
-        coordinateY = [0,0]
+        coordinateX = [0,0,0]
+        coordinateY = [0,0,0]
         for mouse in mousePlayerList:
             print("vor: ",mouse.posX, mouse.posY, mouse.name, mouse.endurance)
         screen.fill((128, 50, 0))
@@ -353,42 +360,42 @@ def running_loop(screen, mPL):
                     print("special")
         if keys[pygame.K_LEFT]:
             print("Left")
-            coordinateX[Team.red]-=movement
+            coordinateX[Team.Red]-=movement
         if keys[pygame.K_RIGHT]:
             print("Right")
-            coordinateX[Team.red]+=movement
+            coordinateX[Team.Red]+=movement
         if keys[pygame.K_UP]:
             print("Up")
-            coordinateY[Team.red]-=movement
+            coordinateY[Team.Red]-=movement
         if keys[pygame.K_DOWN]:
             print("Down")
-            coordinateY[Team.red]+=movement
-        hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing]
+            coordinateY[Team.Red]+=movement
+        hive_direction = [Hive_Direction.Nothing, Hive_Direction.Nothing, Hive_Direction.Nothing]
         if keys[pygame.K_COMMA]:
             print("Comma")
-            hive_direction[Team.red] = Hive_Direction.Diverge
+            hive_direction[Team.Red] = Hive_Direction.Diverge
         if keys[pygame.K_MINUS]:
             print("Minus")
-            hive_direction[Team.red] = Hive_Direction.Merge
+            hive_direction[Team.Red] = Hive_Direction.Merge
 
         if keys[pygame.K_a]:
             print("a")
-            coordinateX[Team.blue] -= movement
+            coordinateX[Team.Blue] -= movement
         if keys[pygame.K_d]:
             print("d")
-            coordinateX[Team.blue] += movement
+            coordinateX[Team.Blue] += movement
         if keys[pygame.K_w]:
             print("w")
-            coordinateY[Team.blue] -= movement
+            coordinateY[Team.Blue] -= movement
         if keys[pygame.K_s]:
             print("s")
-            coordinateY[Team.blue] += movement
+            coordinateY[Team.Blue] += movement
         if keys[pygame.K_q]:
             print("q")
-            hive_direction[Team.blue] = Hive_Direction.Diverge
+            hive_direction[Team.Blue] = Hive_Direction.Diverge
         if keys[pygame.K_e]:
             print("e")
-            hive_direction[Team.blue] = Hive_Direction.Merge
+            hive_direction[Team.Blue] = Hive_Direction.Merge
         for mouse in mousePlayerList:
             (coordinateX_Hive, coordinateY_Hive) = (0, 0)
             if hive_direction[mouse.team]!=Hive_Direction.Nothing:
@@ -422,16 +429,22 @@ mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame
 pygame.display.set_icon(mouseheadImage)
 nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
 nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
+nameList3 = ["Sven", "Max", "Lukas"]
 mousePlayerList = []
 y=150
-team = Team.red
+team = Team.Red
 for name in nameList:
     mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
     y+=150
-team = Team.blue
+team = Team.Blue
 y= 75
 for name in nameList2:
     mousePlayerList.append(Player(name, 120, y, load_images(), 3, 2, team))
+    y += 150
+team = Team.No_team
+y = 275
+for name in nameList3:
+    mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
     y += 150
 running_loop(screen, mousePlayerList)
 
