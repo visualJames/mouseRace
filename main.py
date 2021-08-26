@@ -193,14 +193,15 @@ class Player:
         self.set_direction(direction)
         print(self.whichImageDirection)
     def isNear(self, range, posX, posY):
-        if(self.posX>posX-range and self.posX<posX+range):
+        lenght = 1.85
+        if(self.posX>posX-range*lenght and self.posX<posX+range*lenght):
             if (self.posY > posY - range and self.posY < posY + range):
                 return True
         return False
     def goTo(self, coordinateX, coordinateY, mousePlayerList, hive_direction):
         movement = 2
         howNear=50
-        healing_distance = 1.5
+        healing_distance = 1.65
         for mouse in mousePlayerList:
             if (self != mouse and mouse.isNear(howNear*healing_distance, self.posX + coordinateX, self.posY + coordinateY)):
                 if numpy.random.random_sample()<=0.01:
