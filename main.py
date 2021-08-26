@@ -207,9 +207,10 @@ class Snake:
         for b in self.Body:
             b.draw_Minimap(screen, size, posX_map, posY_map)
     def change_image(self, direction):
-        if(abs(self.Head.whichImageDirection.get_diff(direction))<180):
+        diff = self.Head.whichImageDirection.get_diff(direction)
+        if(diff==None or abs(diff)<180):
             before = self.Body[0].whichImageDirection
-            self.Body[0].change.image = self.Head.whichImageDirection
+            self.Body[0].change_image = self.Head.whichImageDirection
             self.Head.change_image(direction)
             for i in range(1,len(self.Body)):
                 zwischen = self.Body[i].whichImageDirection
@@ -224,8 +225,8 @@ class Snake:
         heigth = 0.8
         direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
         for i in range(0, len(game.mPL)):
-            if (self != mouse and mouse.isNear(howNear * food_distance, self.posX + coordinateX,
-                                               self.posY + coordinateY, width, heigth)):
+            if (game.mPL[i].isNear(howNear * food_distance, self.Head.posX + coordinateX,
+                                               self.Head.posY + coordinateY, width, heigth)):
                 mouse_died = game.mPL.pop(i)
                 print("Mouse died: ", mouse_died.name)
                 self.Head.live+=1
@@ -233,8 +234,8 @@ class Snake:
             self.change_image(direction)
             if (coordinateX != 0 or coordinateY != 0):
                 self.Head.whichImageExactly += 1 # Todo:later body changes images too
-                if (self.whichImageExactly >= len(self.images)):
-                    self.whichImageExactly = 0
+                if (self.Head.whichImageExactly >= len(self.Head.images)):
+                    self.Head.whichImageExactly = 0
 
             (x, y) = direction.move(movement)
             self.Head.posX += x
@@ -462,7 +463,6 @@ def running_loop(screen, game):
     while not quit:
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        #print("Snake-Direction", pygame.mouse.get_pos())
         screen.fill((128, 50, 0))
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -526,6 +526,8 @@ def running_loop(screen, game):
             mouse.draw(screen)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
+        (snakeDirectionX, snakeDirectionY) = pygame.mouse.get_pos()
+        game.snake.goTo(snakeDirectionX, snakeDirectionY, game)
         game.snake.draw(screen)
         minimap.draw(screen)
         pygame.display.update()
