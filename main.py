@@ -174,12 +174,20 @@ class Snake:
         self.size_of_shade = (51,51)
     def appendBodyPart(self, before):
         direction = before.whichImageDirection
-        b = Player(before.name, before.posX - self.sizeOfBodyParts, before.posY, self.imagesBody, 1, 0,
+        b = Player(before.name, before.posX, before.posY, self.imagesBody, 1, 0,
                    Team.Evil)
         b.set_direction(direction)
         self.Body.append(b)
     def updateBody(self):
         lenBody = len(self.Body)
+        if lenBody >= self.Head.live+1:
+            beforeD = self.Body[0].whichImageDirection
+            self.Body[0].set_direction(self.Head.whichImageDirection)
+            for i in range(1, lenBody):
+                zwischen = self.Body[i].whichImageDirection
+                self.Body[i].whichImageDirection = beforeD
+                beforeD = zwischen
+            return
         if lenBody == 0:
             b = Player(self.Head.name, self.Head.posX - self.sizeOfBodyParts, self.Head.posY,
                        self.imagesBody, 1, 0, Team.Evil)
@@ -200,6 +208,7 @@ class Snake:
         print(self.Body, "Snake-Body")
     def draw(self,screen):
         self.Head.draw(screen, self.size_of_shade)
+        self.updateBody()
         for b in self.Body:
             b.draw(screen,self.size_of_shade)
     def draw_Minimap(self, screen, size, posX_map, posY_map):
@@ -220,16 +229,10 @@ class Snake:
     def goTo(self, coordinateX, coordinateY, game):
         movement = 2
         howNear = 50
-        food_distance = 1.75
+        food_distance = 1.15
         width = 0.8
         heigth = 0.8
         direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
-        for i in range(0, len(game.mPL)):
-            if (game.mPL[i].isNear(howNear * food_distance, self.Head.posX + coordinateX,
-                                               self.Head.posY + coordinateY, width, heigth)):
-                mouse_died = game.mPL.pop(i)
-                print("Mouse died: ", mouse_died.name)
-                self.Head.live+=1
         if direction != None:
             self.change_image(direction)
             if (coordinateX != 0 or coordinateY != 0):
@@ -238,6 +241,13 @@ class Snake:
                     self.Head.whichImageExactly = 0
 
             (x, y) = direction.move(movement)
+            for i in range(0, len(game.mPL)):
+                if (game.mPL[i].isNear(howNear * food_distance, self.Head.posX+x,
+                                       self.Head.posY+y, width, heigth)):
+                    mouse_died = game.mPL.pop(i)
+                    print("Mouse died: ", mouse_died.name)
+                    self.Head.live += 1
+                    break
             self.Head.posX += x
             self.Head.posY += y
             for b in self.Body:
@@ -326,15 +336,6 @@ class Player:
         width = 0.8
         heigth = 0.8
         direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
-        for mouse in game.mPL:
-            if (self != mouse and mouse.isNear(howNear*healing_distance, self.posX + coordinateX, self.posY + coordinateY, width, heigth)):
-                if numpy.random.random_sample()<=0.01:
-                    mouse.gainLive() #heal other mouse (every mouse even of enemy team)
-                if mouse.team==Team.No_team:
-                    mouse.team=self.team #(neutral mouse joins team)
-                if(mouse.isNear(howNear, self.posX+coordinateX, self.posY+coordinateY, width, heigth)):
-                    if(mouse.isNearOfDirection(direction, self.posX+coordinateX, self.posY+coordinateY, movement, width, heigth)):
-                        return #someone else is standing there
         if direction != None:
             self.change_image(direction)
             if(coordinateX!=0 or coordinateY!=0):
@@ -343,6 +344,18 @@ class Player:
                     self.whichImageExactly = 0
 
             (x, y) = direction.move(movement)
+            for mouse in game.mPL:
+                if (self != mouse and mouse.isNear(howNear * healing_distance, self.posX + x,
+                                                   self.posY + y, width, heigth)):
+                    if numpy.random.random_sample() <= 0.01:
+                        mouse.gainLive()  # heal other mouse (every mouse even of enemy team)
+                    if mouse.team == Team.No_team:
+                        mouse.team = self.team  # (neutral mouse joins team)
+                    if (mouse.isNear(howNear, self.posX + x, self.posY + y, width, heigth)):
+                        if (
+                        mouse.isNearOfDirection(direction, self.posX + x, self.posY + y, movement,
+                                                width, heigth)):
+                            return  # someone else is standing there
             self.posX += x
             self.posY += y
     def getColor(self):
@@ -527,6 +540,8 @@ def running_loop(screen, game):
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
         (snakeDirectionX, snakeDirectionY) = pygame.mouse.get_pos()
+        snakeDirectionX -= game.snake.Head.posX
+        snakeDirectionY -= game.snake.Head.posY
         game.snake.goTo(snakeDirectionX, snakeDirectionY, game)
         game.snake.draw(screen)
         minimap.draw(screen)
