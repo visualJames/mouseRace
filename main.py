@@ -175,6 +175,8 @@ class Color(Enum):
     Red= '#FF0000'
     Black= '#000000'
     Grey= '#787878'
+    Dirt= '#9b7653'
+    Violet= '#8A2BE2'
 
 def getNameAsImage(name, font_size, color=Color.Grey):
     font = pygame.font.SysFont(None, font_size)
@@ -497,14 +499,21 @@ class Camera:
         self.posX=posX
         self.posY=posY
 class Map:
-    def __init__(self, width, height, screen, camera):
+    def __init__(self, width, height, screen, camera, terrain):
         self.width = width
         self.height = height
         self.screen = screen
         self.camera = camera
+        self.terrain = terrain
     def blit(self, image, pos):
         (posX, posY)=pos
         self.screen.blit(image, (posX-self.camera.posX, posY-self.camera.posY))
+    def fill(self):
+        for t in self.terrain:
+            if t.isInTerrain(self.camera.posX, self.camera.posY):
+                t.fill(self.screen)
+                return
+        self.screen.fill((128, 50, 0))
 class Game:
     def __init__(self, mPL, snake, map):
         self.mPL= mPL
@@ -523,7 +532,7 @@ def running_loop(game):
                              game.snake.Head.posY-game.map.camera.height/camera_pos_Y)
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        game.map.screen.fill((128, 50, 0))
+        game.map.fill()
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
                 quit = quit_sequence(quit)
@@ -593,6 +602,29 @@ def running_loop(game):
         game.snake.draw(game.map)
         minimap.draw(game.map)
         pygame.display.update()
+class Biom(Enum):
+    Mouse_cave = 0
+    Spider_cave = 1
+    def getColor(self):
+        if self==Biom.Mouse_cave:
+            return Color.Dirt
+        if self==Biom.Spider_cave:
+            return Color.Violet
+class Terrain:
+    def __init__(self, biom, posX, posY):
+        self.posX=posX
+        self.posY=posY
+        self.biom = biom
+    def isInTerrain(self, posX, posY):
+        if posX>=self.posX and posY>=self.posY:
+            return True
+        else:
+            return False
+    def fill(self, screen):
+        screen.fill((0, 0, 0, 255), None, pygame.BLEND_RGBA_MULT)
+        # add in new RGB values
+        c = hexToColour(self.biom.getColor().value)
+        screen.fill(c[0:3] + (0,), None, pygame.BLEND_RGBA_ADD)
 
 def load_images():
     up1 = pygame.image.load("mouseplayer/mouseplayer_Up.png")
@@ -631,10 +663,11 @@ def init():
     snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
     snake = Snake("Snake", 200, 100, [snakeImageHead], [snakeImageBody], [snakeImageTail], 2, 2)
     camera = Camera(100,0, screen.get_width(), screen.get_height())
-    size_map= 1.8
+    size_map= 3.8
     width = camera.width*size_map
     height = camera.height*size_map
-    map = Map(width, height, screen, camera)
+    terrain = [Terrain(Biom.Mouse_cave, 5,10), Terrain(Biom.Spider_cave,1000,1000)]
+    map = Map(width, height, screen, camera, terrain)
     game = Game(mousePlayerList, snake, map)
     running_loop(game)
 init()
