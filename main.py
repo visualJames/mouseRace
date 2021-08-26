@@ -25,6 +25,23 @@ class Direction(Enum):
     Down_Right = 225
     Right = 270
     Up_Right = 315
+    def getByValue(value):
+        if value>335 or value<25:
+            return Direction.Up
+        elif value<70:
+            return Direction.Up_Left
+        elif value<115:
+            return Direction.Left
+        elif value<160:
+            return Direction.Down_Left
+        elif value<205:
+            return Direction.Down
+        elif value<250:
+            return Direction.Down_Right
+        elif value<295:
+            return Direction.Right
+        else:
+            return Direction.Up_Right
 
     def opposite(self):
         if self==Direction.Up:
@@ -64,7 +81,7 @@ class Direction(Enum):
 
 
     def get_diff(self, direction):
-        get_diff(self.value, direction.value)
+        return get_diff(self.value, direction.value)
     def average(list):
         coordinateX=0
         coordinateY=0
@@ -80,29 +97,29 @@ class Direction(Enum):
         diffY = -get_diff(thisY, otherY)
         print(otherY, "=",thisY ,"+ (",diffY, ")")
         return Direction.aboveOrUnderDiff(diffX, diffY)
-    def aboveOrUnderDiff(coordinateX:int, coordinateY:int):
-        if (coordinateX > 0):
-            if (coordinateY > 0):
+    def aboveOrUnderDiff(coordinateX:int, coordinateY:int, buffer=0):
+        if (coordinateX-buffer > 0):
+            if (coordinateY-buffer > 0):
                 return Direction.Down_Right
             else:
-                if (coordinateY < 0):
+                if (coordinateY+buffer < 0):
                     return Direction.Up_Right
                 else:
                     return Direction.Right
         else:
-            if (coordinateX < 0):
-                if (coordinateY > 0):
+            if (coordinateX+buffer < 0):
+                if (coordinateY-buffer > 0):
                     return Direction.Down_Left
                 else:
-                    if (coordinateY < 0):
+                    if (coordinateY+buffer < 0):
                         return Direction.Up_Left
                     else:
                         return Direction.Left
             else:
-                if (coordinateY < 0):
+                if (coordinateY+buffer < 0):
                     return Direction.Up
                 else:
-                    if (coordinateY > 0):
+                    if (coordinateY-buffer > 0):
                         return Direction.Down
                     else: pass#print("None in aboveOrUnder")
 
@@ -174,22 +191,16 @@ class Snake:
         self.size_of_shade = (51,51)
     def appendBodyPart(self, before):
         direction = before.whichImageDirection
-        b = Player(before.name, before.posX, before.posY, self.imagesBody, 1, 0,
+        b = Player("", before.posX, before.posY, self.imagesBody, 1, 0,
                    Team.Evil)
         b.set_direction(direction)
         self.Body.append(b)
     def updateBody(self):
         lenBody = len(self.Body)
         if lenBody >= self.Head.live+1:
-            beforeD = self.Body[0].whichImageDirection
-            self.Body[0].set_direction(self.Head.whichImageDirection)
-            for i in range(1, lenBody):
-                zwischen = self.Body[i].whichImageDirection
-                self.Body[i].whichImageDirection = beforeD
-                beforeD = zwischen
             return
         if lenBody == 0:
-            b = Player(self.Head.name, self.Head.posX - self.sizeOfBodyParts, self.Head.posY,
+            b = Player("", self.Head.posX - self.sizeOfBodyParts, self.Head.posY,
                        self.imagesBody, 1, 0, Team.Evil)
             b.set_direction(self.Head.whichImageDirection)
             # print("Tail:", tail)
@@ -200,7 +211,7 @@ class Snake:
         for i in range(lenBody+1, self.Head.live):
             self.appendBodyPart(before)
         lastBody = self.Body[len(self.Body)-1]
-        tail = Player(self.Head.name, lastBody.posX - self.sizeOfBodyParts, lastBody.posY,
+        tail = Player("", lastBody.posX - self.sizeOfBodyParts, lastBody.posY,
                       self.imagesTail, 1, 0, Team.Evil)
         tail.set_direction(lastBody.whichImageDirection)
         # print("Tail:", tail)
@@ -208,23 +219,37 @@ class Snake:
         print(self.Body, "Snake-Body")
     def draw(self,screen):
         self.Head.draw(screen, self.size_of_shade)
-        self.updateBody()
         for b in self.Body:
             b.draw(screen,self.size_of_shade)
     def draw_Minimap(self, screen, size, posX_map, posY_map):
-        self.Head.draw_Minimap(screen, size, posX_map, posY_map)
-        for b in self.Body:
-            b.draw_Minimap(screen, size, posX_map, posY_map)
+        self.Head.draw_Minimap(screen, size, posX_map, posY_map)#Todo:better image for snake-minimap
+        #for b in self.Body:
+        #    b.draw_Minimap(screen, size, posX_map, posY_map)
     def change_image(self, direction):
         diff = self.Head.whichImageDirection.get_diff(direction)
-        if(diff==None or abs(diff)<180):
+        print(diff, "change_image", direction, self.Head.whichImageDirection)
+        if(diff!=None):
+            if abs(diff)>90:
+                if diff<0:
+                    direction = self.Head.whichImageDirection.value - 90
+                    if direction<0:
+                        direction+=360
+                else:
+                    direction = self.Head.whichImageDirection.value + 90
+                direction = Direction.getByValue(direction)
             before = self.Body[0].whichImageDirection
-            self.Body[0].change_image = self.Head.whichImageDirection
+            self.Body[0].change_image(self.Head.whichImageDirection)
             self.Head.change_image(direction)
+            (x,y)=self.Head.whichImageDirection.move(self.sizeOfBodyParts)
+            self.Body[0].posX = self.Head.posX - x
+            self.Body[0].posY = self.Head.posY - y
             for i in range(1,len(self.Body)):
                 zwischen = self.Body[i].whichImageDirection
                 self.Body[i].change_image(before)
                 before = zwischen
+                (x, y) = self.Body[i].whichImageDirection.move(self.sizeOfBodyParts)
+                self.Body[i].posX = self.Body[i-1].posX - x/1.1
+                self.Body[i].posY = self.Body[i-1].posY - y/1.1
 
     def goTo(self, coordinateX, coordinateY, game):
         movement = 2
@@ -232,7 +257,7 @@ class Snake:
         food_distance = 1.15
         width = 0.8
         heigth = 0.8
-        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
+        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY, 20)
         if direction != None:
             self.change_image(direction)
             if (coordinateX != 0 or coordinateY != 0):
@@ -247,6 +272,7 @@ class Snake:
                     mouse_died = game.mPL.pop(i)
                     print("Mouse died: ", mouse_died.name)
                     self.Head.live += 1
+                    self.updateBody()
                     break
             self.Head.posX += x
             self.Head.posY += y
@@ -329,7 +355,7 @@ class Player:
         if direction==Direction.Up_Right:
             return isUp or isRight
 
-    def goTo(self, coordinateX, coordinateY, game, hive_direction):
+    def goTo(self, coordinateX, coordinateY, game):
         movement = 2
         howNear=50
         healing_distance = 1.75
@@ -434,11 +460,15 @@ class Minimap(pygame.sprite.Sprite):
         self.image = self.surface.copy()
         screen.blit(self.image, (self.posX, self.posY))
 
+        minimap_size = round(100/self.size_relation)
         for mouse in self.game.mPL:
             posX = mouse.posX / self.size_relation + self.posX
             posY = mouse.posY / self.size_relation + self.posY
-            mouse.draw_Minimap(screen, round(100/self.size_relation), posX, posY)
-
+            mouse.draw_Minimap(screen, minimap_size , posX, posY)
+        snake = self.game.snake.Head
+        posX = snake.posX / self.size_relation + self.posX
+        posY = snake.posY / self.size_relation + self.posY
+        self.game.snake.draw_Minimap(screen, minimap_size , posX, posY)
         step = 20
         font_size = 28
         lenOldTeams=0
@@ -447,6 +477,8 @@ class Minimap(pygame.sprite.Sprite):
             start_posY = self.posY + self.height / self.size_relation + (lenOldTeams + i) * step
             color = team.getColor()
             team_list = team.getTeam(self.game.mPL)
+            if not team_list:
+                continue
             name_team = team.getName()
             self.draw_teams(screen, font_size, color, team_list, name_team, start_posY, step)
             lenOldTeams += len(team_list)
@@ -535,7 +567,7 @@ def running_loop(screen, game):
                     else:#Diverge
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
 
-            mouse.goTo(coordinateX[mouse.team.value]+coordinateX_Hive, coordinateY[mouse.team.value]+coordinateY_Hive, game, hive_direction)
+            mouse.goTo(coordinateX[mouse.team.value]+coordinateX_Hive, coordinateY[mouse.team.value]+coordinateY_Hive, game)
             mouse.draw(screen)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
@@ -583,7 +615,7 @@ def init():
     snakeImageBody = pygame.transform.rotate(pygame.image.load("Snake/SnakeBody.png"), Direction.Left.value)
     snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
     snake = Snake("Snake", 200, 100, [snakeImageHead], [snakeImageBody], [snakeImageTail], 2, 2)
-    camera = Camera(0,0)
+    camera = Camera(0+screen.get_width()/2,0+screen.get_height()/2)
     width = screen.get_width()
     height = screen.get_height()
     map = Map(width, height)
