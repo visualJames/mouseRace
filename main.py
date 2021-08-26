@@ -100,18 +100,17 @@ class Direction(Enum):
                         return Direction.Left
             else:
                 if (coordinateY < 0):
-                    print("upDirection:", coordinateX, coordinateY)
                     return Direction.Up
                 else:
                     if (coordinateY > 0):
-                        print("downDirection", coordinateX, coordinateY)
                         return Direction.Down
-                    else: print("None in aboveOrUnder")
+                    else: pass#print("None in aboveOrUnder")
 
 class Team(Enum):
     Red=0
     Blue=1
     No_team=2
+    Evil=3
     def getName(self):
         return self.name
     def getColor(self):
@@ -121,6 +120,8 @@ class Team(Enum):
             return Color.Red
         if self==Team.No_team:
             return Color.Grey
+        if self==Team.Evil:
+            return Color.Black
     def getTeam(team, list):
         l = []
         for mouse in list:
@@ -162,6 +163,86 @@ def getNameAsImage(name, font_size, color=Color.Grey):
     font = pygame.font.SysFont(None, font_size)
     return font.render(name, True, hexToColour(color.value))
 
+class Snake:
+    def __init__(self, name, posX, posY, imagesHead, imagesBody, imagesTail, live, endurance):
+        self.Head = Player(name, posX, posY, imagesHead, live, endurance, Team.Evil)
+        self.imagesBody = imagesBody
+        self.imagesTail = imagesTail
+        self.sizeOfBodyParts = 42
+        self.Body = []
+        self.updateBody()
+        self.size_of_shade = (51,51)
+    def appendBodyPart(self, before):
+        direction = before.whichImageDirection
+        b = Player(before.name, before.posX - self.sizeOfBodyParts, before.posY, self.imagesBody, 1, 0,
+                   Team.Evil)
+        b.set_direction(direction)
+        self.Body.append(b)
+    def updateBody(self):
+        lenBody = len(self.Body)
+        if lenBody == 0:
+            b = Player(self.Head.name, self.Head.posX - self.sizeOfBodyParts, self.Head.posY,
+                       self.imagesBody, 1, 0, Team.Evil)
+            b.set_direction(self.Head.whichImageDirection)
+            # print("Tail:", tail)
+            self.Body.append(b)
+        else:
+            before = self.Body.pop()
+            self.appendBodyPart(before)
+        for i in range(lenBody+1, self.Head.live):
+            self.appendBodyPart(before)
+        lastBody = self.Body[len(self.Body)-1]
+        tail = Player(self.Head.name, lastBody.posX - self.sizeOfBodyParts, lastBody.posY,
+                      self.imagesTail, 1, 0, Team.Evil)
+        tail.set_direction(lastBody.whichImageDirection)
+        # print("Tail:", tail)
+        self.Body.append(tail)
+        print(self.Body, "Snake-Body")
+    def draw(self,screen):
+        self.Head.draw(screen, self.size_of_shade)
+        for b in self.Body:
+            b.draw(screen,self.size_of_shade)
+    def draw_Minimap(self, screen, size, posX_map, posY_map):
+        self.Head.draw_Minimap(screen, size, posX_map, posY_map)
+        for b in self.Body:
+            b.draw_Minimap(screen, size, posX_map, posY_map)
+    def change_image(self, direction):
+        if(abs(self.Head.whichImageDirection.get_diff(direction))<180):
+            before = self.Body[0].whichImageDirection
+            self.Body[0].change.image = self.Head.whichImageDirection
+            self.Head.change_image(direction)
+            for i in range(1,len(self.Body)):
+                zwischen = self.Body[i].whichImageDirection
+                self.Body[i].change_image(before)
+                before = zwischen
+
+    def goTo(self, coordinateX, coordinateY, game):
+        movement = 2
+        howNear = 50
+        food_distance = 1.75
+        width = 0.8
+        heigth = 0.8
+        direction = Direction.aboveOrUnderDiff(coordinateX, coordinateY)
+        for i in range(0, len(game.mPL)):
+            if (self != mouse and mouse.isNear(howNear * food_distance, self.posX + coordinateX,
+                                               self.posY + coordinateY, width, heigth)):
+                mouse_died = game.mPL.pop(i)
+                print("Mouse died: ", mouse_died.name)
+                self.Head.live+=1
+        if direction != None:
+            self.change_image(direction)
+            if (coordinateX != 0 or coordinateY != 0):
+                self.Head.whichImageExactly += 1 # Todo:later body changes images too
+                if (self.whichImageExactly >= len(self.images)):
+                    self.whichImageExactly = 0
+
+            (x, y) = direction.move(movement)
+            self.Head.posX += x
+            self.Head.posY += y
+            for b in self.Body:
+                b.posX += x
+                b.posY += y
+
 class Player:
     whichImageExactly=0
     def __init__(self, name, posX, posY, images, live, endurance, team):
@@ -171,8 +252,12 @@ class Player:
         self.images = images
         self.live = live-1
         self.max_life = live
-        self.endurance = endurance-1
-        self.max_endurance = endurance
+        if endurance > 0:
+            self.endurance =endurance-1
+            self.max_endurance = endurance
+        else:
+            self.endurance =0
+            self.max_endurance = 0
         self.whichImageDirection=Direction.Right
         self.team = team
     def set_direction(self, direction: 'Direction'):
@@ -265,11 +350,11 @@ class Player:
         if (self.team == Team.Red):
             return Color.Red.value
         return Color.Black.value
-    def draw(self, screen):
+    def draw(self, screen, size_of_shade=(102,102)):
         image = pygame.transform.rotate(self.images[self.whichImageExactly], self.whichImageDirection.value)
         imageBackground = pygame.transform.rotate(pygame.transform.scale(colorize(
             self.images[self.whichImageExactly], hexToColour(self.getColor()))
-                                                 , (102,102)), self.whichImageDirection.value)
+                                                 ,size_of_shade), self.whichImageDirection.value)
         screen.blit(imageBackground, (self.posX, self.posY))
         screen.blit(image, (self.posX, self.posY))
         font_size = 21
@@ -347,9 +432,7 @@ class Minimap(pygame.sprite.Sprite):
         for team in Team:
             start_posY = self.posY + self.height / self.size_relation + (lenOldTeams + i) * step
             color = team.getColor()
-            print(color, "Color")
             team_list = team.getTeam(self.game.mPL)
-            print("team_list", team_list)
             name_team = team.getName()
             self.draw_teams(screen, font_size, color, team_list, name_team, start_posY, step)
             lenOldTeams += len(team_list)
@@ -364,8 +447,9 @@ class Map:
         self.width = width
         self.height = height
 class Game:
-    def __init__(self, mPL, camera, map):
+    def __init__(self, mPL, snake, camera, map):
         self.mPL= mPL
+        self.snake = snake
         self.camera=camera
         self.map = map
 
@@ -378,8 +462,7 @@ def running_loop(screen, game):
     while not quit:
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        for mouse in game.mPL:
-            print("vor: ",mouse.posX, mouse.posY, mouse.name, mouse.endurance)
+        #print("Snake-Direction", pygame.mouse.get_pos())
         screen.fill((128, 50, 0))
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -443,7 +526,7 @@ def running_loop(screen, game):
             mouse.draw(screen)
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
-            print("nach: ", mouse.posX, mouse.posY, mouse.name, mouse.endurance)
+        game.snake.draw(screen)
         minimap.draw(screen)
         pygame.display.update()
 
@@ -479,11 +562,15 @@ def init():
     for name in nameList3:
         mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
         y += 150
+    snakeImageHead = pygame.transform.rotate(pygame.image.load("Snake/SnakeHead.png"), Direction.Left.value)
+    snakeImageBody = pygame.transform.rotate(pygame.image.load("Snake/SnakeBody.png"), Direction.Left.value)
+    snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
+    snake = Snake("Snake", 200, 100, [snakeImageHead], [snakeImageBody], [snakeImageTail], 2, 2)
     camera = Camera(0,0)
     width = screen.get_width()
     height = screen.get_height()
     map = Map(width, height)
-    game = Game(mousePlayerList, camera, map)
+    game = Game(mousePlayerList, snake, camera, map)
     running_loop(screen, game)
 init()
 
