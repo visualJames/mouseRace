@@ -703,9 +703,12 @@ def init():
     pygame.display.set_caption("Mouse Race")
     mouseheadImage = pygame.image.load("mouseplayer/mouseplayerDeath_Up.png")#pygame.image.load('mousehead/mousehead.png')
     pygame.display.set_icon(mouseheadImage)
-    nameList = ["Bernd", "Jürgen", "Hanz", "Herbert", "Thomas"]
-    nameList2 = ["Aaron", "Felix", "Satella", "Torben", "Frank"]
-    nameList3 = ["Sven", "Max", "Lukas"]
+    nameList = ["Bernd", "Jürgen"]
+    nameList2 = ["Aaron", "Felix"]
+    nameList3 = ["Sven", "Max", "Jerry", "Gary", "Harry", "Karl", "Unge", "Hanz", "Herbert", "Thomas", "Satella", "Torben", "Frank", "Lars",
+                 "Annegreth", "Merkel", "Fred vom Hofe", "Günther", "Ole", "Ulf", "Daniel", "Clemens", "Marshall", "Chantal",
+                 "Diva", "Antonia", "Michelle", "Jaqueline", "Mark", "Constantin", "Tech-Nick", "Birte", "Jakob", "Niklas", "Andy", "Müller",
+                 "Meier", "Reiher", "Herr Zeiger", "Herr Bahnschaffner", "Briefträger", "Frau Lehrerin", "Zombie Karl", "Vampir Harry", "Großer Karl"]
     mousePlayerList = []
     y=150
     team = Team.Red
@@ -719,9 +722,13 @@ def init():
         y += 150
     team = Team.No_team
     y = 275
+    x = 550
     for name in nameList3:
-        mousePlayerList.append(Player(name, 720, y, load_images(), 3, 2, team))
-        y += 150
+        if y>=3500:
+            y=400
+            x+=750
+        mousePlayerList.append(Player(name, x, y, load_images(), 3, 2, team))
+        y += 650
     snakeImageHead = pygame.transform.rotate(pygame.image.load("Snake/SnakeHead.png"), Direction.Left.value)
     snakeImageBody = pygame.transform.rotate(pygame.image.load("Snake/SnakeBody.png"), Direction.Left.value)
     snakeImageTail = pygame.transform.rotate(pygame.image.load("Snake/SnakeTail.png"), Direction.Left.value)
