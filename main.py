@@ -498,6 +498,13 @@ class Camera:
     def move(self, posX, posY):
         self.posX=posX
         self.posY=posY
+def changeMusicOfTerrain(biom):
+    music = biom.getMusic()
+    if pygame.mixer.music.get_busy():
+        pygame.mixer.music.queue(music)
+    else:
+        pygame.mixer.music.load(music)
+        pygame.mixer.music.play()
 class Map:
     def __init__(self, width, height, screen, camera, terrain):
         self.width = width
@@ -512,6 +519,7 @@ class Map:
         for t in self.terrain:
             if t.isInTerrain(self.camera.posX, self.camera.posY):
                 t.fill(self.screen)
+                changeMusicOfTerrain(t.biom)
                 return
         self.screen.fill((128, 50, 0))
 class Game:
@@ -519,6 +527,7 @@ class Game:
         self.mPL= mPL
         self.snake = snake
         self.map = map
+        changeMusicOfTerrain(Biom.No_cave)
 
 def running_loop(game):
     quit = False
@@ -603,20 +612,31 @@ def running_loop(game):
         minimap.draw(game.map)
         pygame.display.update()
 class Biom(Enum):
-    Mouse_cave = 0
-    Spider_cave = 1
+    No_cave = 0
+    Mouse_cave = 1
+    Spider_cave = 2
     def getColor(self):
+        if self==Biom.No_cave:
+            return Color.Grey
         if self==Biom.Mouse_cave:
             return Color.Dirt
         if self==Biom.Spider_cave:
             return Color.Violet
+    def getMusic(self):
+        if self == Biom.No_cave:
+            return "Music/suprised.wav"
+        if self == Biom.Mouse_cave:
+            return "Music/entuhsiastic.wav"
+        if self == Biom.Spider_cave:
+            return "Music/dark-atomosphere.wav"
+def howDeep(terrain):
+    return terrain.posY_end
 class Terrain:
-    def __init__(self, biom, posX, posY):
-        self.posX=posX
-        self.posY=posY
+    def __init__(self, biom,posY_end):
+        self.posY_end=posY_end
         self.biom = biom
     def isInTerrain(self, posX, posY):
-        if posX>=self.posX and posY>=self.posY:
+        if posY<=self.posY_end:
             return True
         else:
             return False
@@ -666,7 +686,8 @@ def init():
     size_map= 3.8
     width = camera.width*size_map
     height = camera.height*size_map
-    terrain = [Terrain(Biom.Mouse_cave, 5,10), Terrain(Biom.Spider_cave,1000,1000)]
+    terrain = sorted([Terrain(Biom.Mouse_cave,100), Terrain(Biom.Spider_cave,200)], key=howDeep)
+    print(terrain, "Terrain")
     map = Map(width, height, screen, camera, terrain)
     game = Game(mousePlayerList, snake, map)
     running_loop(game)
