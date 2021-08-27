@@ -649,8 +649,8 @@ def running_loop(game):
             if numpy.random.random_sample()<=0.01:
                 mouse.gainendurance()
         (snakeDirectionX, snakeDirectionY) = pygame.mouse.get_pos()
-        snakeDirectionX -= game.snake.Head.posX
-        snakeDirectionY -= game.snake.Head.posY
+        snakeDirectionX -= (game.snake.Head.posX % game.map.camera.width/2)
+        snakeDirectionY -= (game.snake.Head.posY % game.map.camera.height/2)
         game.snake.goTo(snakeDirectionX, snakeDirectionY, game)
         game.snake.draw(game.map)
         minimap.draw(game.map)
