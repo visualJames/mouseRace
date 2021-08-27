@@ -636,8 +636,8 @@ def running_loop(game):
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
             if mouse.team==Team.No_team:
                 snake = game.snake.Head
-                width = 1.3
-                heigth = 1.3
+                width = 0.61
+                heigth = 0.91
                 if mouse.isNear(snake.posX, snake.posY, game.snake.movement, width, heigth):
                     directionSnake = snake.whichImageDirection
                     direction = directionSnake
