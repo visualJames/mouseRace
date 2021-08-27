@@ -178,8 +178,8 @@ class Color(Enum):
     Dirt= '#9b7653'
     Violet= '#8A2BE2'
 
-def getNameAsImage(name, font_size, color=Color.Grey):
-    font = pygame.font.SysFont(None, font_size)
+def getNameAsImage(name, font_size, color=Color.Grey, font_type = None):
+    font = pygame.font.SysFont(font_type, font_size)
     return font.render(name, True, hexToColour(color.value))
 
 class Snake:
@@ -191,6 +191,7 @@ class Snake:
         self.Body = []
         self.updateBody()
         self.size_of_shade = (51,51)
+        self.movement = 5
     def appendBodyPart(self, before):
         direction = before.whichImageDirection
         b = Player("", before.posX, before.posY, self.imagesBody, 1, 0,
@@ -254,7 +255,7 @@ class Snake:
                 self.Body[i].posY = self.Body[i-1].posY - y/1.1
 
     def goTo(self, coordinateX, coordinateY, game):
-        movement = 2
+        movement = self.movement
         howNear = 50
         food_distance = 1.15
         width = 0.8
@@ -271,6 +272,9 @@ class Snake:
             for i in range(0, len(game.mPL)):
                 if (game.mPL[i].isNear(howNear * food_distance, self.Head.posX+x,
                                        self.Head.posY+y, width, heigth)):
+                    pygame.mixer.music.stop()
+                    game.musicPlayer.time_to_wait=30
+                    pygame.mixer.Sound("Music/Eat.wav").play()
                     mouse_died = game.mPL.pop(i)
                     print("Mouse died: ", mouse_died.name)
                     self.Head.live += 1
@@ -358,7 +362,7 @@ class Player:
             return isUp or isRight
 
     def goTo(self, coordinateX, coordinateY, game):
-        movement = 2
+        movement = 4
         howNear=50
         healing_distance = 1.75
         width = 0.8
@@ -498,11 +502,15 @@ class Camera:
     def move(self, posX, posY):
         self.posX=posX
         self.posY=posY
-def changeMusicOfTerrain(biom):
+
+def changeMusicOfTerrain(biom, musicPlayer):
     music = biom.getMusic()
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.queue(music)
     else:
+        if musicPlayer.time_to_wait > 0:
+            musicPlayer.time_to_wait-= 1
+            return
         pygame.mixer.music.load(music)
         pygame.mixer.music.play()
 class Map:
@@ -515,19 +523,44 @@ class Map:
     def blit(self, image, pos):
         (posX, posY)=pos
         self.screen.blit(image, (posX-self.camera.posX, posY-self.camera.posY))
-    def fill(self):
+    def fill(self, musicPlayer):
         for t in self.terrain:
             if t.isInTerrain(self.camera.posX, self.camera.posY):
                 t.fill(self.screen)
-                changeMusicOfTerrain(t.biom)
+                changeMusicOfTerrain(t.biom, musicPlayer)
                 return
         self.screen.fill((128, 50, 0))
+class MusicPlayer:
+    def __init__(self):
+        self.time_to_wait = 0
 class Game:
     def __init__(self, mPL, snake, map):
         self.mPL= mPL
         self.snake = snake
         self.map = map
-        changeMusicOfTerrain(Biom.No_cave)
+        self.musicPlayer = MusicPlayer()
+        changeMusicOfTerrain(Biom.No_cave, self.musicPlayer)
+
+
+def paused(game):
+    PauseText = getNameAsImage("Paused", 215, Color.Red, "comicsansms")
+    pygame.mixer.music.stop()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                return
+
+        game.map.screen.fill(hexToColour(Color.Grey.value))
+        game.map.screen.blit(PauseText, ((game.map.camera.width / 2.8), (game.map.camera.height / 2.3)))
+
+#        button("Continue", 150, 450, 100, 50, green, bright_green, unpause)
+ #       button("Quit", 550, 450, 100, 50, red, bright_red, quitgame)
+
+        pygame.display.update()
+        pygame.time.wait(200)
 
 def running_loop(game):
     quit = False
@@ -541,11 +574,13 @@ def running_loop(game):
                              game.snake.Head.posY-game.map.camera.height/camera_pos_Y)
         coordinateX = [0,0,0]
         coordinateY = [0,0,0]
-        game.map.fill()
+        game.map.fill(game.musicPlayer)
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
                 quit = quit_sequence(quit)
         keys = pygame.key.get_pressed()
+        if keys[pygame.K_ESCAPE]:
+            paused(game)
         if keys[pygame.K_RETURN]:
             print("Enter")
             for mouse in game.mPL:
@@ -599,6 +634,15 @@ def running_loop(game):
                         (coordinateX_Hive, coordinateY_Hive) = direction.move(movement)
                     else:#Diverge
                         (coordinateX_Hive, coordinateY_Hive) = direction.opposite().move(movement)
+            if mouse.team==Team.No_team:
+                snake = game.snake.Head
+                width = 1.3
+                heigth = 1.3
+                if mouse.isNear(snake.posX, snake.posY, game.snake.movement, width, heigth):
+                    directionSnake = snake.whichImageDirection
+                    direction = directionSnake
+                    (x,y)=direction.move(game.snake.movement)
+                    mouse.goTo(x,y, game)
 
             mouse.goTo(coordinateX[mouse.team.value]+coordinateX_Hive, coordinateY[mouse.team.value]+coordinateY_Hive, game)
             mouse.draw(game.map)
